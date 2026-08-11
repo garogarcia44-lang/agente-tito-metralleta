@@ -5,7 +5,7 @@
 // opciones completa por vencimiento (`/api/assets/{TICKER}/option_chain_extended`),
 // con OI, bid/ask e IV/griegos reales — así que también hace de fuente de la
 // cadena y de la info de empresa (antes cubierto por Massive/Tradier). Las
-// velas del subyacente NO están aquí (ver lib/stooq.ts).
+// velas del subyacente NO están aquí (ver lib/yahooFinance.ts).
 
 import type { CompanyInfo, RawContract } from "./types";
 import type { RawTrade } from "./flow";
