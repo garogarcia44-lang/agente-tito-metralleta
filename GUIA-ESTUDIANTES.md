@@ -37,18 +37,21 @@ vivas**; las otras 2 se irán construyendo (cada una rellena su casilla y el /10
 
 ## 3. De dónde salen los datos
 
-Dos fuentes, cada una para lo que hace bien:
+- **MarketSnack** (`app.marketsnack.com`, cookie de sesión) — la fuente principal, hace dos trabajos:
+  - **Option chain completa** por vencimiento: Open Interest, volumen, strike, bid/ask, IV y griegos
+    reales por contrato.
+  - **Flujo de opciones ya procesado** (Time & Sales): **bid/ask y el lado de cada trade**
+    (`AT_ASK`, `ASKSIDE`, `AT_BID`, `BIDSIDE`, `MIDMKT`), premium, delta, score.
+- **Yahoo Finance** (endpoint no oficial, sin key) — precio del subyacente: barras diarias e intradía
+  para la gráfica y el análisis de niveles/GEX. MarketSnack no guarda histórico de precio del
+  subyacente, así que esta pieza vive aparte.
+- **Finnhub** — noticias por ticker (sin sentimiento por IA, a diferencia de una fuente anterior que
+  se retiró).
 
-- **Massive** (`api.massive.com`, ex-Polygon) — datos de mercado: option chain (Open Interest,
-  volumen), precio del subyacente (barras diarias e intradía), greeks e IV. **No da bid/ask** en
-  nuestro plan.
-- **MarketSnack** (`app.marketsnack.com`) — flujo de opciones ya procesado, con lo que a Massive
-  le falta: **bid/ask y el lado de cada trade** (`AT_ASK`, `ASKSIDE`, `AT_BID`, `BIDSIDE`, `MIDMKT`),
-  premium, delta, score. Se consulta con la cookie de sesión.
-
-**Dato clave:** ambos consumen el mismo feed OPRA, así que un mismo trade se puede **emparejar 1-a-1
-por `sequence_number`**. Por eso podemos usar Massive para "qué transacciones" y MarketSnack para
-"en bid o ask".
+**Nota histórica:** hasta jul 2026 esto se dividía entre dos proveedores de mercado (uno para la
+cadena, otro para el flujo) porque ninguno solo daba todo. Se retiraron ambos: MarketSnack, que ya
+se pagaba para el flujo, resultó tener también su propia cadena completa — así que hoy una sola
+fuente cubre lo que antes necesitaba dos.
 
 ---
 
@@ -169,12 +172,13 @@ Diseño propuesto (a confirmar):
 
 ## 7. Eststructura técnica (para quien lea el código)
 
-- `web/lib/marketsnack.ts` — cliente de MarketSnack (flujo, filtros, cookie).
+- `web/lib/marketsnack.ts` — cliente de MarketSnack (chain, empresa, flujo, filtros, cookie).
 - `web/lib/flow.ts` — clasificación de trades + flags + score de agresividad (funciones puras, con tests).
 - `web/lib/occ.ts` — parseo del símbolo OCC (strike, vencimiento, tipo, DTE).
-- `web/lib/massive.ts` — cliente de Massive (chain, empresa, barras diarias e intradía).
+- `web/lib/yahooFinance.ts` — barras diarias e intradía del subyacente (Yahoo Finance, sin key).
 - `web/app/api/flow` — endpoint SSE del reporte de Agresividad.
-- `web/app/api/chain`, `/history`, `/bars`, `/logo` — endpoints de Massive.
+- `web/app/api/chain` — endpoint SSE de la cadena de opciones (MarketSnack).
+- `web/app/api/history`, `/bars` — barras del subyacente (Yahoo Finance).
 - `web/app/page.tsx` — el **dashboard** que compone todo con una búsqueda.
 - `web/app/components/` — piezas reutilizables (ScorecardPanel, FlowPriceChart, NotableTable, etc.).
 
