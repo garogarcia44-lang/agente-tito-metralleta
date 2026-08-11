@@ -4,8 +4,9 @@
 //   1. MACRO  — los feeds RSS de RSS Feed.md (CNBC + Investing.com). Son feeds
 //      generales de mercado: mueven a todos los tickers por igual (Fed, tarifas,
 //      inflación). Se cachean porque el resultado es idéntico para cada búsqueda.
-//   2. EMPRESA — noticias del ticker desde Massive, que además trae sentimiento
-//      por ticker con su razonamiento.
+//   2. EMPRESA — noticias del ticker desde Finnhub. A diferencia de Massive,
+//      Finnhub (plan gratis) no trae sentimiento por ticker — el campo queda
+//      siempre en null, y el resto de la lógica de abajo ya lo tolera.
 //
 // Puente entre ambas: si un titular de los feeds macro menciona a la empresa,
 // se promueve a la capa de empresa. Así los feeds del documento sí aportan
@@ -253,50 +254,48 @@ const tickerCache = new Map<string, CacheEntry<NewsItem[]>>();
 const MACRO_TTL = 15 * 60_000;
 const TICKER_TTL = 5 * 60_000;
 
-interface MassiveNews {
-  id?: string;
-  title?: string;
-  article_url?: string;
-  published_utc?: string;
-  description?: string;
-  publisher?: { name?: string };
-  insights?: { ticker?: string; sentiment?: string; sentiment_reasoning?: string }[];
+interface FinnhubNews {
+  id?: number;
+  headline?: string;
+  url?: string;
+  datetime?: number; // unix seconds
+  summary?: string;
+  source?: string;
 }
 
-/** Capa 2 — noticias del ticker, con el sentimiento que ya calcula Massive. */
+/** Capa 2 — noticias del ticker desde Finnhub. Sin sentimiento (plan gratis). */
 export async function fetchTickerNews(ticker: string, limit = 12): Promise<NewsItem[]> {
   const clean = ticker.trim().toUpperCase();
   const hit = tickerCache.get(clean);
   if (hit && Date.now() - hit.at < TICKER_TTL) return hit.value;
 
-  const key = process.env.MASSIVE_API_KEY;
+  const key = process.env.FINNHUB_API_KEY;
   if (!key) return [];
+  const to = new Date();
+  const from = new Date(to.getTime() - 14 * 24 * 60 * 60 * 1000);
+  const toStr = (d: Date) => d.toISOString().slice(0, 10);
   const url =
-    `https://api.massive.com/v2/reference/news?ticker=${encodeURIComponent(clean)}` +
-    `&order=desc&sort=published_utc&limit=${limit}`;
+    `https://finnhub.io/api/v1/company-news?symbol=${encodeURIComponent(clean)}` +
+    `&from=${toStr(from)}&to=${toStr(to)}&token=${key}`;
 
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${key}` }, cache: "no-store" });
+  const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) return [];
-  const json = (await res.json()) as { results?: MassiveNews[] };
+  const json = (await res.json().catch(() => null)) as FinnhubNews[] | null;
 
-  const items: NewsItem[] = (json.results ?? [])
-    .filter((r) => r.title && r.article_url)
-    .map((r) => {
-      // Un artículo cubre varios tickers; solo interesa el insight del nuestro.
-      const mine = r.insights?.find((i) => i.ticker?.toUpperCase() === clean);
-      const s = mine?.sentiment?.toLowerCase();
-      return {
-        id: r.id ?? r.article_url!,
-        title: r.title!,
-        url: r.article_url!,
-        publisher: r.publisher?.name ?? "—",
-        publishedUtc: r.published_utc ?? new Date().toISOString(),
-        description: r.description ?? null,
-        sentiment: s === "positive" || s === "negative" || s === "neutral" ? s : null,
-        reasoning: mine?.sentiment_reasoning ?? null,
-        layer: "company" as const,
-      };
-    });
+  const items: NewsItem[] = (json ?? [])
+    .filter((r) => r.headline && r.url)
+    .slice(0, limit)
+    .map((r) => ({
+      id: r.id != null ? String(r.id) : r.url!,
+      title: r.headline!,
+      url: r.url!,
+      publisher: r.source ?? "—",
+      publishedUtc: r.datetime ? new Date(r.datetime * 1000).toISOString() : new Date().toISOString(),
+      description: r.summary ?? null,
+      sentiment: null,
+      reasoning: null,
+      layer: "company" as const,
+    }));
 
   tickerCache.set(clean, { at: Date.now(), value: items });
   return items;

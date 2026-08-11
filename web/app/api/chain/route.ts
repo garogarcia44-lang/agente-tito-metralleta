@@ -3,7 +3,7 @@
 import { countExpirations, sortByOpenInterestDesc, toRow } from "@/lib/compute";
 import { structureScore } from "@/lib/structure";
 import { saveChainSnapshot, type ChainSnapshot } from "@/lib/chainStore";
-import { fetchCompany, fetchOptionChain, MassiveError } from "@/lib/massive";
+import { fetchCompany, fetchOptionChain, MarketSnackError } from "@/lib/marketsnack";
 import type { ChainEvent, ChainMeta, Row } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -35,7 +35,7 @@ export async function GET(request: Request) {
         const company = await fetchCompany(ticker);
         send({ type: "company", company });
 
-        send({ type: "step", label: "Conectando con Massive…" });
+        send({ type: "step", label: "Conectando con MarketSnack…" });
 
         const { contracts, underlyingPrice, pages, truncated } =
           await fetchOptionChain(ticker, {
@@ -90,9 +90,9 @@ export async function GET(request: Request) {
         send({ type: "done", rows, meta, structure, history });
       } catch (err) {
         const message =
-          err instanceof MassiveError
+          err instanceof MarketSnackError
             ? err.message
-            : "Error inesperado al consultar Massive.";
+            : "Error inesperado al consultar MarketSnack.";
         send({ type: "error", message });
       } finally {
         controller.close();

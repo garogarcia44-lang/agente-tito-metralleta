@@ -6,7 +6,7 @@ import { fetchFlow, MarketSnackError } from "@/lib/marketsnack";
 import { saveTrades } from "@/lib/store";
 import { ivContextScore, type IvContextScore } from "@/lib/ivcontext";
 import { loadIvHistory, saveIvSnapshot } from "@/lib/ivStore";
-import { fetchDailyBars } from "@/lib/massive";
+import { fetchDailyBars } from "@/lib/yahooFinance";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

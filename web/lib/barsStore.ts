@@ -10,7 +10,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { marketDateStr } from "./occ";
-import { fetchDailyBars } from "./massive";
+import { fetchDailyBars } from "./yahooFinance";
 import type { DailyBar } from "./types";
 
 const DATA_DIR = path.join(process.cwd(), "data", "bars");

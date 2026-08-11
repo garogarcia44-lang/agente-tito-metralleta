@@ -11,7 +11,7 @@ import { classifyFlow, type FlowRow } from "@/lib/flow";
 import { fetchMarketFlow, MarketSnackError } from "@/lib/marketsnack";
 import { isTradeableIdea, passesQualityFilter, withinMoneyness, MONEYNESS_CAP } from "@/lib/risk";
 import { loadTrades, saveTrades } from "@/lib/store";
-import { fetchDailyBars } from "@/lib/massive";
+import { fetchDailyBars } from "@/lib/yahooFinance";
 import { validationScore, type FlowLite } from "@/lib/validation";
 import type { Idea, IdeaHistory } from "@/app/ideas/types";
 
@@ -23,7 +23,7 @@ const MIN_PREMIUM = 100_000; // piso server-side: flujo grande, ya no solo insti
 const MAX_PAGES = 8;
 const PERIOD = "1d"; // el sizing usa el precio del trade → cuanto más fresco, mejor
 const MAX_IDEAS = 60; // tope de filas devueltas
-const MAX_HISTORY_TICKERS = 25; // tope de llamadas a Massive por escaneo
+const MAX_HISTORY_TICKERS = 25; // tope de llamadas a Yahoo Finance por escaneo
 
 interface SseEvent {
   type: "step" | "done" | "error";
@@ -101,7 +101,7 @@ export async function GET() {
         });
 
         // Historial: solo para tickers que YA tienen flows guardados. Los demás
-        // salen como "sin historial" sin gastar una llamada a Massive.
+        // salen como "sin historial" sin gastar una llamada a Yahoo Finance.
         const history = new Map<string, IdeaHistory>();
         const withStored: { ticker: string; flows: FlowLite[] }[] = [];
         for (const ticker of tickers) {

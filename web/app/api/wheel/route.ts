@@ -4,7 +4,7 @@
 // El saldo NO llega aquí: la ruta devuelve candidatos con métricas y la
 // asequibilidad se calcula en el cliente con tito.risk.* de localStorage.
 
-import { fetchWheelChain } from "@/lib/massive";
+import { fetchWheelChain } from "@/lib/marketsnack";
 import { cachedDailyBars } from "@/lib/barsStore";
 import { findLevels, type LvlBar } from "@/lib/levels";
 import { realizedVolSeries, rankWithin } from "@/lib/ivcontext";

@@ -98,7 +98,7 @@ export default function WheelPage() {
               {meta.degraded && <span className="wheel-tag warn"> datos parciales: falló más de la mitad</span>}
             </div>
             <p className="wheel-disclaimer">
-              Las cotizaciones de Massive son <b>retrasadas</b>. Estos son candidatos, no órdenes: confirma el precio en tu bróker antes de vender.
+              Estos son candidatos, no órdenes: confirma el precio en tu bróker antes de vender.
             </p>
             <WheelTable rows={rows} view={view} />
           </>

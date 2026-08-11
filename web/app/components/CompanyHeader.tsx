@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { CompanyInfo } from "@/lib/types";
 import { int, money, px, pct } from "../format";
 
@@ -13,15 +14,17 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 export default function CompanyHeader({ company }: { company: CompanyInfo }) {
+  const [logoFailed, setLogoFailed] = useState(false);
   return (
     <section className="company">
       <div className="company-head">
-        {company.hasLogo && (
+        {company.hasLogo && !logoFailed && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             className="logo"
-            src={`/api/logo?ticker=${encodeURIComponent(company.ticker)}`}
+            src={`https://img.logo.dev/ticker/${encodeURIComponent(company.ticker)}?token=${process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN}`}
             alt={`${company.ticker} logo`}
+            onError={() => setLogoFailed(true)}
           />
         )}
         <div className="company-id">

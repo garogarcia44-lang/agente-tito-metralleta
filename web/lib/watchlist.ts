@@ -101,6 +101,14 @@ export const BROKERS: BrokerAdapter[] = [
       "La web de IBKR no abre una página por símbolo, así que te copiamos los tickers para pegarlos en el buscador de TWS o del portal.",
   },
   {
+    id: "tradestation",
+    name: "TradeStation",
+    kind: "copy",
+    granularity: "underlying_only",
+    caveat:
+      "TradeStation no tiene página pública de cotización por símbolo (su plataforma vive tras login en webtrading.tradestation.com), así que te copiamos los tickers para pegarlos en su buscador. Sí tiene MCP oficial, pero exige balance mínimo de $10,000 y pedir acceso en su HUB — de momento no expone una herramienta de watchlist verificable, así que no califica como Robinhood.",
+  },
+  {
     id: "none",
     name: "Solo en Tito",
     kind: "none",

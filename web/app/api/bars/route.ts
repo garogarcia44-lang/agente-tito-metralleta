@@ -1,6 +1,6 @@
 // GET /api/bars?ticker=XXX&tf=1y|15m10d|5m5d — barras del subyacente para la gráfica de flujo.
 
-import { fetchBars, MassiveError } from "@/lib/massive";
+import { fetchBars } from "@/lib/yahooFinance";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,8 +20,7 @@ export async function GET(request: Request) {
   try {
     const bars = await fetchBars(ticker, cfg.m, cfg.span, cfg.days);
     return Response.json({ ticker, tf, bars });
-  } catch (err) {
-    const message = err instanceof MassiveError ? err.message : "Error al cargar barras.";
-    return Response.json({ error: message }, { status: 502 });
+  } catch {
+    return Response.json({ error: "Error al cargar barras." }, { status: 502 });
   }
 }

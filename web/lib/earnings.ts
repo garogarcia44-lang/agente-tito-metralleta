@@ -1,10 +1,12 @@
 // Estimador del próximo reporte de resultados.
 //
-// El plan de Massive NO trae calendario de earnings (verificado: /benzinga/v1/earnings
-// da 403, /v1/reference/earnings da 404). Se usan DOS proxies y la UI declara que
-// es estimación:
-//   1. Cadencia de filing_date de /vX/reference/financials (~91 días entre reportes).
-//   2. El skew del frente que ivcontext ya calcula (>+10 pts = evento inminente).
+// MarketSnack da `earnings_date` directo en /api/assets/{TICKER}, pero no
+// siempre está poblado (queda null hasta acercarse la fecha real). Cuando
+// falta, se cae a un proxy por cadencia (~91 días entre reportes) usando las
+// fechas de reporte pasadas — hoy sin una fuente de histórico de filings, así
+// que ese proxy queda sin datos reales y el flag efectivo es "no_aplica"
+// hasta que MarketSnack publique la fecha. La UI declara que es estimación.
+// El segundo proxy (skew del frente, >+10 pts = evento inminente) sigue igual.
 //
 // La parte pura (estimateNextEarnings, earningsFlag) no toca red.
 
@@ -50,43 +52,40 @@ export function earningsFlag(input: {
 
 // ── Fetch (I/O — no se testea) ─────────────────────────────────────────
 
-interface FinancialsResult {
-  results?: { filing_date?: string }[];
-}
-
-/** Fechas de reporte pasadas de un ticker. Devuelve [] si el ticker no reporta (ETF). */
-export async function fetchFilingDates(ticker: string): Promise<string[]> {
-  const key = process.env.MASSIVE_API_KEY;
-  if (!key) return [];
+/**
+ * Próximo earnings directo de MarketSnack (`earnings_date` en /api/assets/X).
+ * Devuelve null si no está poblado (ETF, o MarketSnack todavía no lo publicó)
+ * — falla en silencio porque esto es solo un proxy, no un dato crítico.
+ */
+export async function fetchNextEarnings(ticker: string): Promise<string | null> {
+  const cookieHeader = process.env.MARKETSNACK_COOKIE;
+  if (!cookieHeader || !cookieHeader.trim()) return null;
   const clean = ticker.trim().toUpperCase();
-  const url =
-    `https://api.massive.com/vX/reference/financials?ticker=${encodeURIComponent(clean)}` +
-    `&timeframe=quarterly&limit=6&order=desc&sort=filing_date`;
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${key}` }, cache: "no-store" })
-    .catch(() => null);
-  if (!res || !res.ok) return [];
-  const json = (await res.json().catch(() => null)) as FinancialsResult | null;
-  return (json?.results ?? [])
-    .map((r) => r.filing_date)
-    .filter((d): d is string => Boolean(d));
+  const url = `https://app.marketsnack.com/api/assets/${encodeURIComponent(clean)}`;
+  const res = await fetch(url, {
+    headers: { Accept: "application/json", Cookie: cookieHeader.trim() },
+    cache: "no-store",
+    redirect: "manual",
+  }).catch(() => null);
+  if (!res || !res.ok) return null;
+  const json = (await res.json().catch(() => null)) as { earnings_date?: string } | null;
+  return json?.earnings_date ? json.earnings_date.slice(0, 10) : null;
 }
 
 // NOTA (limitación declarada): el escaneo Wheel real (app/api/wheel/route.ts)
 // siempre llama a esta función con frontSkew: null, porque ese escaneo no
 // calcula ivContextScore por ticker (no tiene el flujo de MarketSnack por
 // símbolo). En consecuencia, HOY "dentro_confirmado" es INALCANZABLE en
-// producción: el flag efectivo es únicamente la cadencia de filing_date (el
-// "doble proxy" descrito arriba es, en la práctica, un proxy único). El
-// parámetro frontSkew se conserva para el día en que el skew esté disponible
-// en el escaneo Wheel; los tests unitarios de este módulo sí lo ejercitan
-// pasando un valor > 10 a propósito, y eso está bien.
+// producción: el flag efectivo depende solo de si MarketSnack ya publicó
+// `earnings_date` para ese ticker. El parámetro frontSkew se conserva para el
+// día en que el skew esté disponible en el escaneo Wheel; los tests unitarios
+// de este módulo sí lo ejercitan pasando un valor > 10 a propósito, y eso está bien.
 export async function earningsForTicker(input: {
   ticker: string;
   expiration: string;
   frontSkew: number | null;
   now: Date;
 }): Promise<EarningsFlag> {
-  const filings = await fetchFilingDates(input.ticker);
-  const nextEarnings = estimateNextEarnings(filings, input.now);
+  const nextEarnings = await fetchNextEarnings(input.ticker);
   return earningsFlag({ nextEarnings, expiration: input.expiration, frontSkew: input.frontSkew });
 }

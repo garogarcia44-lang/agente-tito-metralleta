@@ -3,7 +3,7 @@
 //   GET  /api/prediction?ticker=XXX              → revisa las predicciones guardadas contra
 //                                                   el precio real posterior (auto-evaluación)
 
-import { fetchDailyBars } from "@/lib/massive";
+import { fetchDailyBars } from "@/lib/yahooFinance";
 import {
   loadJournal, savePrediction, reviewPredictions,
   type PredictionSnapshot,

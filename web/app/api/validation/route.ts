@@ -3,7 +3,7 @@
 // diarias del subyacente.
 
 import { loadTrades } from "@/lib/store";
-import { fetchDailyBars } from "@/lib/massive";
+import { fetchDailyBars } from "@/lib/yahooFinance";
 import { validationScore, type FlowLite } from "@/lib/validation";
 
 export const runtime = "nodejs";

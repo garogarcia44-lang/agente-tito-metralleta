@@ -97,7 +97,7 @@ export default function OptionChainTable({ rows, meta }: { rows: Row[]; meta: Ch
         </table>
       </div>
       <p className="pxsrc" style={{ marginTop: 10 }}>
-        Precio = último trade / cierre (Massive no expone bid en este plan). Open Premium = OI × precio · Notional = OI × 100 × strike.
+        Precio = último trade / cierre (esta tabla no usa bid/ask). Open Premium = OI × precio · Notional = OI × 100 × strike.
       </p>
     </>
   );
