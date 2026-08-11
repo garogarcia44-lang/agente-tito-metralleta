@@ -2,7 +2,7 @@
 
 Sistema **multi-agente de análisis de flujo de opciones** (options flow). Identifica actividad inusual en el mercado de opciones, la interpreta y la convierte en tres escenarios de precio con probabilidad.
 
-![Next.js](https://img.shields.io/badge/Next.js-15-black) ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue) ![Tests](https://img.shields.io/badge/tests-333%20passing-brightgreen)
+![Next.js](https://img.shields.io/badge/Next.js-15-black) ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue) ![Tests](https://img.shields.io/badge/tests-436%20passing-brightgreen)
 
 ## Qué hace
 
@@ -34,7 +34,7 @@ El resumen se escribe en lenguaje llano, por ejemplo:
 - **Mapa de nodos GEX** y **heatmap por strike × vencimiento** — dónde el dealer estabiliza (γ+) o amplifica (γ−).
 - **Soportes y resistencias** — cruce de pivotes reales del precio con los muros de opciones (vender calls = resistencia, vender puts = soporte).
 - **Movimiento esperado** — cono 1σ/2σ que se abre en √t, con probabilidades lognormales por nivel.
-- **Noticias en dos capas** — feeds macro (CNBC, Investing.com) + noticias por empresa con sentimiento, y una **bandera de contradicción** cuando el flujo y las noticias apuntan a lados opuestos.
+- **Noticias en dos capas** — feeds macro (CNBC, Investing.com) + noticias por empresa (Finnhub), y una **bandera de contradicción** cuando el flujo y las noticias apuntan a lados opuestos.
 - **Backtest de validación** — mide cuánto tardó en desarrollarse el movimiento tras cada flow, a favor y en contra.
 
 ### Ideas del mercado + panel de riesgo (`/ideas`)
@@ -66,16 +66,20 @@ está en beta **solo con acciones**, así que hoy se le manda el subyacente (`WU
 - **Next.js 15** (App Router) + TypeScript + React 19
 - CSS plano — sin framework de estilos
 - **TradingView Lightweight Charts** para las velas
-- **vitest** — 333 tests sobre la lógica pura
+- **vitest** — 436 tests sobre la lógica pura
 - Server-Sent Events para el progreso en vivo de cada consulta
 
 ## Fuentes de datos
 
 | Fuente | Para qué |
 |--------|----------|
-| [Massive](https://massive.com) (antes Polygon.io) | Option chain, barras del subyacente, referencia y noticias por ticker |
-| MarketSnack | Time & Sales con bid/ask, griegos e IV por operación |
+| [MarketSnack](https://app.marketsnack.com) | Option chain completa (OI, bid/ask, IV, griegos), info de empresa, y Time & Sales con clasificación de agresor por operación |
+| [Yahoo Finance](https://finance.yahoo.com) (endpoint no oficial, sin key) | Barras diarias del subyacente para la gráfica y el análisis de niveles/GEX |
+| [Finnhub](https://finnhub.io) | Noticias por ticker (sin sentimiento por IA, a diferencia de fuentes de pago) |
+| [logo.dev](https://logo.dev) | Logo de la empresa, servido directo desde el navegador |
 | CNBC · Investing.com | Feeds RSS de contexto macro |
+
+Todas gratuitas o ya incluidas en una suscripción existente (MarketSnack) — el proyecto no depende de ningún proveedor de pago dedicado a datos de mercado.
 
 ## Cómo correrlo
 
@@ -89,7 +93,7 @@ npm run dev
 Abre <http://localhost:3000>.
 
 ```bash
-npm test          # 333 tests
+npm test          # 436 tests
 npx tsc --noEmit  # typecheck
 ```
 
