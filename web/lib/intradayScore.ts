@@ -12,13 +12,19 @@
 // de la mezcla y el umbral final; van documentadas y exportadas (no elegidas en
 // silencio) para que se puedan auditar o pedir que se ajusten con el tiempo, tal
 // como pide el usuario para el ciclo de mejora continua.
+//
+// Flujo/GEX/nivel/liquidez son idénticos a swingScore.ts (lib/confluenceScore.ts,
+// compartido); lo que distingue intradía es el quinto factor: frescura del trade
+// en minutos, no persistencia en varios días.
 
 import type { FlowRow } from "./flow";
-import { unusualTradeScore } from "./flow";
 import type { GexAnalysis } from "./gex";
 import type { Level } from "./levels";
+import {
+  directionOf, flowScore, gexScore, levelScore, liquidityScore, type Direction,
+} from "./confluenceScore";
 
-export type Direction = "up" | "down";
+export type { Direction };
 
 export const WEIGHTS = {
   flow: 0.3,
@@ -35,37 +41,6 @@ export const WEIGHTS = {
  * el tiempo dentro del ciclo de aprendizaje aprobado (fase futura), no a mano acá.
  */
 export const INTRADAY_SCORE_THRESHOLD = 70;
-
-function directionOf(row: FlowRow): Direction | null {
-  if (row.type === "call") return "up";
-  if (row.type === "put") return "down";
-  return null;
-}
-
-/** 0-100 a partir del 0-10 de unusualTradeScore (ya pasó el umbral de isTradeableIdea). */
-function flowScore(row: FlowRow): number {
-  return unusualTradeScore(row).total * 10;
-}
-
-/** ¿El régimen de gamma empuja en la misma dirección que el flujo, o en contra? */
-function gexScore(gex: GexAnalysis, direction: Direction): number {
-  if (gex.direction === direction) return gex.confidence;
-  if (gex.direction === null || gex.direction === "flat") return 35;
-  return Math.max(0, 30 - gex.confidence * 0.3); // gamma va en contra del flujo
-}
-
-/** ¿El objetivo cae en un nivel real (soporte/resistencia) o en el borde de 1σ sin respaldo? */
-function levelScore(targetLevel: Level | null): number {
-  return targetLevel ? targetLevel.strength : 30;
-}
-
-/** Cadena ilíquida (ya detectada por gexAnalysis) y open interest real del contrato. */
-function liquidityScore(row: FlowRow, gex: GexAnalysis): number {
-  if (gex.lowLiquidity) return 20;
-  if (row.openInterest >= 100) return 90;
-  if (row.openInterest >= 20) return 60;
-  return 40;
-}
 
 /** Qué tan reciente es el trade que originó la señal. */
 function freshnessScore(row: FlowRow, now: Date): number {
