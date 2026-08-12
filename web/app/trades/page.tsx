@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import NavTabs from "@/app/components/NavTabs";
 import OpportunityScanCard from "@/app/components/OpportunityScanCard";
 import PaperPlanForm from "@/app/components/PaperPlanForm";
+import PaperResultsPanel from "@/app/components/PaperResultsPanel";
 import PaperPlansTable from "@/app/components/PaperPlansTable";
 import type { CreatePlanInput, PaperPlan } from "@/lib/paperPlan";
 
@@ -102,6 +103,8 @@ export default function TradesPage() {
 
         {error && <div className="error">⚠ {error}</div>}
         {alertNote && <div className="muted paperplan-alert-note">{alertNote}</div>}
+
+        {plans !== null && <PaperResultsPanel plans={plans} />}
 
         {plans === null ? (
           <div className="card wheel-empty">Cargando…</div>
