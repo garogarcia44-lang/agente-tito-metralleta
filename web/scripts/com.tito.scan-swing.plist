@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.tito.scan-swing</string>
+
+	<key>ProgramArguments</key>
+	<array>
+		<string>/opt/homebrew/bin/node</string>
+		<string>/Users/jorge/Downloads/agente-tito-metralleta-main/web/scripts/scan-auto.mjs</string>
+		<string>swing</string>
+	</array>
+
+	<key>WorkingDirectory</key>
+	<string>/Users/jorge/Downloads/agente-tito-metralleta-main/web</string>
+
+	<!-- Cada 4h — la señal de swing es persistencia en varios días, no
+	     frescura de minutos, así que no gana nada corriendo tan seguido como
+	     intradía. Igual sale en silencio fuera de horario de mercado. -->
+	<key>StartInterval</key>
+	<integer>14400</integer>
+
+	<key>RunAtLoad</key>
+	<true/>
+
+	<key>StandardOutPath</key>
+	<string>/Users/jorge/Downloads/agente-tito-metralleta-main/web/data/scan-swing-stdout.log</string>
+	<key>StandardErrorPath</key>
+	<string>/Users/jorge/Downloads/agente-tito-metralleta-main/web/data/scan-swing-stderr.log</string>
+
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>PATH</key>
+		<string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+	</dict>
+</dict>
+</plist>
