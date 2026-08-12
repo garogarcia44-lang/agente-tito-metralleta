@@ -6,7 +6,12 @@ import PaperPlanForm from "@/app/components/PaperPlanForm";
 import PaperPlansTable from "@/app/components/PaperPlansTable";
 import type { CreatePlanInput, PaperPlan } from "@/lib/paperPlan";
 
-async function callApi(body: Record<string, unknown>): Promise<PaperPlan[]> {
+interface ApiResponse {
+  plans: PaperPlan[];
+  alert?: { sent: boolean; duplicate: boolean; reason?: string };
+}
+
+async function callApi(body: Record<string, unknown>): Promise<ApiResponse> {
   const res = await fetch("/api/paperplans", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -14,13 +19,14 @@ async function callApi(body: Record<string, unknown>): Promise<PaperPlan[]> {
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error ?? "No se pudo aplicar la acción.");
-  return data.plans as PaperPlan[];
+  return data as ApiResponse;
 }
 
 export default function TradesPage() {
   const [plans, setPlans] = useState<PaperPlan[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [alertNote, setAlertNote] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/paperplans");
@@ -31,10 +37,19 @@ export default function TradesPage() {
   useEffect(() => { load(); }, [load]);
 
   const run = useCallback(async (body: Record<string, unknown>) => {
-    setBusy(true); setError(null);
+    setBusy(true); setError(null); setAlertNote(null);
     try {
-      const updated = await callApi(body);
+      const { plans: updated, alert } = await callApi(body);
       setPlans(updated);
+      if (alert) {
+        setAlertNote(
+          alert.sent
+            ? "✅ Alerta enviada por WhatsApp."
+            : alert.duplicate
+              ? null // ya se había mandado, no hace falta avisar de nuevo
+              : `⚠️ No se pudo avisar por WhatsApp: ${alert.reason ?? "motivo desconocido"}`,
+        );
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error inesperado.");
     } finally {
@@ -71,6 +86,7 @@ export default function TradesPage() {
         />
 
         {error && <div className="error">⚠ {error}</div>}
+        {alertNote && <div className="muted paperplan-alert-note">{alertNote}</div>}
 
         {plans === null ? (
           <div className="card wheel-empty">Cargando…</div>

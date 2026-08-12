@@ -2,13 +2,18 @@
 //
 //   GET                     → { plans }
 //   POST { action, ... }    → aplica una acción (crear/activar/subir stop/cerrar/expirar/
-//                              editar contratos) y devuelve { plans } ya actualizado
+//                              editar contratos) y devuelve { plans, alert? } ya actualizado
 //   DELETE ?id=             → borra un plan (limpieza manual, Fase A)
 //
 // Fase A: los planes se crean a mano desde la UI. No hay detección automática ni
 // monitoreo de cotizaciones en vivo todavía — eso es una fase futura y se pide
 // aprobada aparte. Esta ruta solo orquesta I/O; toda la máquina de estados y el
 // cálculo de P&L viven en `lib/paperPlan.ts`, puro y testeado.
+//
+// Fase B: cada transición relevante dispara una alerta de WhatsApp (`paperAlertSender.ts`).
+// Sin TWILIO_* configurado no se manda nada — pero la acción del plan igual se
+// completa y se guarda; el resultado del intento de alerta viaja en `alert` para
+// que la UI pueda mostrarlo, nunca se oculta.
 
 import { randomUUID } from "crypto";
 import {
@@ -24,6 +29,16 @@ import {
   type Quote,
 } from "@/lib/paperPlan";
 import { loadPaperPlans, savePaperPlans } from "@/lib/paperPlansStore";
+import { sendPaperAlertOnce, type SendPaperAlertResult } from "@/lib/paperAlertSender";
+import type { AlertEvent } from "@/lib/paperAlert";
+
+async function notify(
+  plan: PaperPlan,
+  event: AlertEvent,
+  extra: { observedPrice?: number | null; observedAt?: string | null } = {},
+): Promise<SendPaperAlertResult> {
+  return sendPaperAlertOnce({ plan, event, ...extra });
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -79,7 +94,8 @@ export async function POST(request: Request) {
       }
       const plan = createPaperPlan({ ...input, id: randomUUID() } as CreatePlanInput, now);
       const saved = await savePaperPlans([...plans, plan]);
-      return Response.json({ plans: saved.plans });
+      const alert = await notify(plan, "created");
+      return Response.json({ plans: saved.plans, alert });
     }
 
     const plan = findPlan(plans, body.id);
@@ -92,7 +108,8 @@ export async function POST(request: Request) {
       const reason = typeof body.reason === "string" ? body.reason : undefined;
       const updated = activatePlan(plan, entry, now, reason);
       const saved = await savePaperPlans([...others, updated]);
-      return Response.json({ plans: saved.plans });
+      const alert = await notify(updated, "activated", { observedPrice: entry.price, observedAt: entry.at });
+      return Response.json({ plans: saved.plans, alert });
     }
 
     if (body.action === "updateHighest") {
@@ -115,7 +132,8 @@ export async function POST(request: Request) {
         );
       }
       const saved = await savePaperPlans([...others, updated]);
-      return Response.json({ plans: saved.plans });
+      const alert = await notify(updated, "stop_raised");
+      return Response.json({ plans: saved.plans, alert });
     }
 
     if (body.action === "close") {
@@ -137,7 +155,10 @@ export async function POST(request: Request) {
         now,
       );
       const saved = await savePaperPlans([...others, updated]);
-      return Response.json({ plans: saved.plans });
+      const alert = await notify(updated, body.outcome === "ganada" ? "target_hit" : "stop_hit", {
+        observedPrice: exit.price, observedAt: exit.at,
+      });
+      return Response.json({ plans: saved.plans, alert });
     }
 
     if (body.action === "expire") {
@@ -146,7 +167,8 @@ export async function POST(request: Request) {
       }
       const updated = expirePlan(plan, body.reason, now);
       const saved = await savePaperPlans([...others, updated]);
-      return Response.json({ plans: saved.plans });
+      const alert = await notify(updated, "expired");
+      return Response.json({ plans: saved.plans, alert });
     }
 
     if (body.action === "editContracts") {

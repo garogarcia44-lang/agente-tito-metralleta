@@ -1060,3 +1060,4 @@ tfoot .totals td {
   border-radius: 7px; background: var(--panel);
 }
 .paperplan-contracts { width: 54px; text-align: right; }
+.paperplan-alert-note { font-size: 13px; margin: -4px 0 4px; }
