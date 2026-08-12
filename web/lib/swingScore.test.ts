@@ -104,4 +104,11 @@ describe("scoreSwingCandidate", () => {
     const againstGex = scoreSwingCandidate({ row, ownFlow: [row], gex: gex({ direction: "down" }), targetLevel: level() });
     expect(againstGex.gex).toBeLessThan(withGex.gex);
   });
+
+  it("acepta un umbral distinto al default (lo usa el ciclo de mejora aprobado)", () => {
+    const [row] = rows([{ id: 1, symbol: "TSLA261120C00305000", premium: 2_000_000 }]);
+    const out = scoreSwingCandidate({ row, ownFlow: [row], gex: gex(), targetLevel: level(), threshold: 95 });
+    expect(out.total).toBeLessThan(95);
+    expect(out.passes).toBe(false);
+  });
 });

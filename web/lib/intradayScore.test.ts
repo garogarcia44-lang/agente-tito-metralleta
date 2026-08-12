@@ -111,4 +111,10 @@ describe("scoreIntradayCandidate", () => {
     expect(out.direction).toBe("down");
     expect(out.passes).toBe(false);
   });
+
+  it("acepta un umbral distinto al default (lo usa el ciclo de mejora aprobado)", () => {
+    const out = scoreIntradayCandidate({ row: row(), gex: gex(), targetLevel: level(), now: NOW, threshold: 95 });
+    expect(out.total).toBeLessThan(95);
+    expect(out.passes).toBe(false);
+  });
 });

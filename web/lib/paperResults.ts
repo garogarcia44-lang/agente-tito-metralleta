@@ -45,7 +45,7 @@ function emptySlice(label: string): ResultsSlice {
   };
 }
 
-function sliceOf(plans: PaperPlan[], label: string): ResultsSlice {
+export function sliceResults(plans: PaperPlan[], label: string): ResultsSlice {
   const s = emptySlice(label);
   s.total = plans.length;
   for (const p of plans) {
@@ -110,14 +110,14 @@ export interface PaperResultsReport {
 
 export function buildPaperResults(plans: PaperPlan[]): PaperResultsReport {
   return {
-    overall: sliceOf(plans, "Todos"),
+    overall: sliceResults(plans, "Todos"),
     byHorizon: {
-      intradia: sliceOf(plans.filter((p) => p.horizon === "intradia"), "Intradía"),
-      swing: sliceOf(plans.filter((p) => p.horizon === "swing"), "Swing"),
+      intradia: sliceResults(plans.filter((p) => p.horizon === "intradia"), "Intradía"),
+      swing: sliceResults(plans.filter((p) => p.horizon === "swing"), "Swing"),
     },
     byOrigin: {
-      auto: sliceOf(plans.filter((p) => p.origin === "auto"), "Auto"),
-      manual: sliceOf(plans.filter((p) => p.origin === "manual"), "Manual"),
+      auto: sliceResults(plans.filter((p) => p.origin === "auto"), "Auto"),
+      manual: sliceResults(plans.filter((p) => p.origin === "manual"), "Manual"),
     },
     calibration: buildCalibration(plans),
   };

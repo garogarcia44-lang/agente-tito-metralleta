@@ -5,6 +5,7 @@ import NavTabs from "@/app/components/NavTabs";
 import OpportunityScanCard from "@/app/components/OpportunityScanCard";
 import PaperPlanForm from "@/app/components/PaperPlanForm";
 import PaperResultsPanel from "@/app/components/PaperResultsPanel";
+import RuleProposalsPanel from "@/app/components/RuleProposalsPanel";
 import PaperPlansTable from "@/app/components/PaperPlansTable";
 import type { CreatePlanInput, PaperPlan } from "@/lib/paperPlan";
 
@@ -105,6 +106,7 @@ export default function TradesPage() {
         {alertNote && <div className="muted paperplan-alert-note">{alertNote}</div>}
 
         {plans !== null && <PaperResultsPanel plans={plans} />}
+        <RuleProposalsPanel />
 
         {plans === null ? (
           <div className="card wheel-empty">Cargando…</div>

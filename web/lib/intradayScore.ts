@@ -23,6 +23,7 @@ import type { Level } from "./levels";
 import {
   directionOf, flowScore, gexScore, levelScore, liquidityScore, type Direction,
 } from "./confluenceScore";
+import { DEFAULT_SCANNER_RULES } from "./scannerRules";
 
 export type { Direction };
 
@@ -37,10 +38,12 @@ export const WEIGHTS = {
 /**
  * Umbral final (0-100) para que un candidato dispare un plan AUTO + alerta.
  * Se arranca estricto a propósito: es más barato perderse una oportunidad al
- * principio que llenar "Mis Trades" de planes de baja convicción. Se ajusta con
- * el tiempo dentro del ciclo de aprendizaje aprobado (fase futura), no a mano acá.
+ * principio que llenar "Mis Trades" de planes de baja convicción. El valor por
+ * defecto vive en lib/scannerRules.ts; el ciclo de mejora (lib/ruleProposals.ts)
+ * puede proponer un umbral distinto, pero solo entra en vigor si se aprueba
+ * explícitamente — este módulo nunca lo cambia por su cuenta.
  */
-export const INTRADAY_SCORE_THRESHOLD = 70;
+export const INTRADAY_SCORE_THRESHOLD = DEFAULT_SCANNER_RULES.intradayThreshold;
 
 /** Qué tan reciente es el trade que originó la señal. */
 function freshnessScore(row: FlowRow, now: Date): number {
@@ -58,6 +61,10 @@ export interface IntradayScoreInput {
   gex: GexAnalysis;
   targetLevel: Level | null;
   now: Date;
+  /** Umbral a usar para `passes` — por defecto INTRADAY_SCORE_THRESHOLD. Lo pasa
+   * la ruta de escaneo con el umbral activo (lib/scannerRulesStore.ts) cuando
+   * un ciclo de mejora aprobado lo cambió. */
+  threshold?: number;
 }
 
 export interface IntradayScoreBreakdown {
@@ -74,7 +81,7 @@ export interface IntradayScoreBreakdown {
 }
 
 export function scoreIntradayCandidate(input: IntradayScoreInput): IntradayScoreBreakdown {
-  const { row, gex, targetLevel, now } = input;
+  const { row, gex, targetLevel, now, threshold = INTRADAY_SCORE_THRESHOLD } = input;
   const direction = directionOf(row);
 
   if (direction === null) {
@@ -96,6 +103,6 @@ export function scoreIntradayCandidate(input: IntradayScoreInput): IntradayScore
 
   return {
     direction, flow, gex: gexC, levels, liquidity, freshness,
-    total, passes: total >= INTRADAY_SCORE_THRESHOLD,
+    total, passes: total >= threshold,
   };
 }

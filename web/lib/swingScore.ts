@@ -19,6 +19,7 @@ import { isTradeableIdea } from "./risk";
 import {
   directionOf, flowScore, gexScore, levelScore, liquidityScore, type Direction,
 } from "./confluenceScore";
+import { DEFAULT_SCANNER_RULES } from "./scannerRules";
 
 export type { Direction };
 
@@ -37,8 +38,12 @@ export const WEIGHTS = {
   persistence: 0.15,
 } as const;
 
-/** Mismo umbral estricto que intradía — ver intradayScore.ts para el razonamiento. */
-export const SWING_SCORE_THRESHOLD = 70;
+/**
+ * Mismo umbral estricto que intradía — ver intradayScore.ts para el razonamiento.
+ * El valor por defecto vive en lib/scannerRules.ts; solo cambia si se aprueba
+ * una propuesta del ciclo de mejora (lib/ruleProposals.ts).
+ */
+export const SWING_SCORE_THRESHOLD = DEFAULT_SCANNER_RULES.swingThreshold;
 
 /**
  * Cuántos trades de calidad tradeable (mismo filtro que risk.ts) tiene este
@@ -59,6 +64,8 @@ export interface SwingScoreInput {
   ownFlow: FlowRow[];
   gex: GexAnalysis;
   targetLevel: Level | null;
+  /** Umbral a usar para `passes` — por defecto SWING_SCORE_THRESHOLD. */
+  threshold?: number;
 }
 
 export interface SwingScoreBreakdown {
@@ -75,7 +82,7 @@ export interface SwingScoreBreakdown {
 }
 
 export function scoreSwingCandidate(input: SwingScoreInput): SwingScoreBreakdown {
-  const { row, ownFlow, gex, targetLevel } = input;
+  const { row, ownFlow, gex, targetLevel, threshold = SWING_SCORE_THRESHOLD } = input;
   const direction = directionOf(row);
 
   if (direction === null) {
@@ -97,6 +104,6 @@ export function scoreSwingCandidate(input: SwingScoreInput): SwingScoreBreakdown
 
   return {
     direction, flow, gex: gexC, levels, liquidity, persistence,
-    total, passes: total >= SWING_SCORE_THRESHOLD,
+    total, passes: total >= threshold,
   };
 }

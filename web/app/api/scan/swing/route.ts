@@ -28,10 +28,11 @@ import { gexAnalysis, type TradeLite } from "@/lib/gex";
 import { findLevels, type ChainLevel, type FlowLevel, type GexLevel } from "@/lib/levels";
 import { probTouch } from "@/lib/expectedMove";
 import { derivePlanTargets } from "@/lib/planTargets";
-import { scoreSwingCandidate, SWING_SCORE_THRESHOLD, SWING_MIN_DTE } from "@/lib/swingScore";
+import { scoreSwingCandidate, SWING_MIN_DTE } from "@/lib/swingScore";
 import { checkAutoPlanGuards } from "@/lib/planGuards";
 import { createPaperPlan, type CreatePlanInput, type PaperPlan } from "@/lib/paperPlan";
 import { loadPaperPlans, savePaperPlans } from "@/lib/paperPlansStore";
+import { loadScannerRules } from "@/lib/scannerRulesStore";
 import { sendPaperAlertOnce } from "@/lib/paperAlertSender";
 
 export const runtime = "nodejs";
@@ -102,7 +103,10 @@ export async function GET() {
           label: `${candidates.length} tickers candidatos (≥${SWING_MIN_DTE} días al vencimiento), analizando ${selected.length}…`,
         });
 
-        const { plans: existingPlans } = await loadPaperPlans();
+        const [{ plans: existingPlans }, { active: rules }] = await Promise.all([
+          loadPaperPlans(),
+          loadScannerRules(),
+        ]);
         let plans = existingPlans;
 
         const created: { id: string; ticker: string; symbol: string; score: number }[] = [];
@@ -159,13 +163,15 @@ export async function GET() {
             levels,
           });
 
-          const score = scoreSwingCandidate({ row: candidate, ownFlow, gex, targetLevel: targets.targetLevel });
+          const score = scoreSwingCandidate({
+            row: candidate, ownFlow, gex, targetLevel: targets.targetLevel, threshold: rules.swingThreshold,
+          });
 
           if (!score.passes) {
             rejectedByScore.push({ ticker, symbol: candidate.symbol, score: Math.round(score.total) });
             send({
               type: "step",
-              label: `${contractLabel(candidate)}: descartado, score ${Math.round(score.total)}/100 (mínimo ${SWING_SCORE_THRESHOLD}).`,
+              label: `${contractLabel(candidate)}: descartado, score ${Math.round(score.total)}/100 (mínimo ${rules.swingThreshold}).`,
             });
             continue;
           }
@@ -237,7 +243,7 @@ export async function GET() {
             candidates: candidates.length,
             analyzed: selected.length,
             truncatedCandidates,
-            scoreThreshold: SWING_SCORE_THRESHOLD,
+            scoreThreshold: rules.swingThreshold,
             minDte: SWING_MIN_DTE,
             minPremium: MIN_PREMIUM,
             moneynessCap: MONEYNESS_CAP,

@@ -22,11 +22,12 @@ import { gexAnalysis, type TradeLite } from "@/lib/gex";
 import { findLevels, type ChainLevel, type FlowLevel, type GexLevel } from "@/lib/levels";
 import { probTouch } from "@/lib/expectedMove";
 import { derivePlanTargets } from "@/lib/planTargets";
-import { scoreIntradayCandidate, INTRADAY_SCORE_THRESHOLD } from "@/lib/intradayScore";
+import { scoreIntradayCandidate } from "@/lib/intradayScore";
 import { checkAutoPlanGuards } from "@/lib/planGuards";
 import { createPaperPlan, type CreatePlanInput, type PaperPlan } from "@/lib/paperPlan";
 import { loadPaperPlans, savePaperPlans } from "@/lib/paperPlansStore";
 import { sendPaperAlertOnce } from "@/lib/paperAlertSender";
+import { loadScannerRules } from "@/lib/scannerRulesStore";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -94,7 +95,10 @@ export async function GET() {
           label: `${candidates.length} tickers candidatos, analizando ${selected.length}…`,
         });
 
-        const { plans: existingPlans } = await loadPaperPlans();
+        const [{ plans: existingPlans }, { active: rules }] = await Promise.all([
+          loadPaperPlans(),
+          loadScannerRules(),
+        ]);
         let plans = existingPlans;
 
         const created: { id: string; ticker: string; symbol: string; score: number }[] = [];
@@ -151,13 +155,15 @@ export async function GET() {
             levels,
           });
 
-          const score = scoreIntradayCandidate({ row: candidate, gex, targetLevel: targets.targetLevel, now });
+          const score = scoreIntradayCandidate({
+            row: candidate, gex, targetLevel: targets.targetLevel, now, threshold: rules.intradayThreshold,
+          });
 
           if (!score.passes) {
             rejectedByScore.push({ ticker, symbol: candidate.symbol, score: Math.round(score.total) });
             send({
               type: "step",
-              label: `${contractLabel(candidate)}: descartado, score ${Math.round(score.total)}/100 (mínimo ${INTRADAY_SCORE_THRESHOLD}).`,
+              label: `${contractLabel(candidate)}: descartado, score ${Math.round(score.total)}/100 (mínimo ${rules.intradayThreshold}).`,
             });
             continue;
           }
@@ -228,7 +234,7 @@ export async function GET() {
             candidates: candidates.length,
             analyzed: selected.length,
             truncatedCandidates,
-            scoreThreshold: INTRADAY_SCORE_THRESHOLD,
+            scoreThreshold: rules.intradayThreshold,
             minPremium: MIN_PREMIUM,
             moneynessCap: MONEYNESS_CAP,
             generatedAt: now.toISOString(),
