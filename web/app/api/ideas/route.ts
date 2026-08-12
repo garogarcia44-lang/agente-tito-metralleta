@@ -7,7 +7,7 @@
 // El sizing NO se calcula aquí: el tamaño de cuenta vive en localStorage del navegador
 // y nunca llega al servidor. Esta ruta devuelve los griegos; el cliente aplica sizeFlow.
 
-import { classifyFlow, type FlowRow } from "@/lib/flow";
+import { classifyFlow, dedupeByContract, type FlowRow } from "@/lib/flow";
 import { fetchMarketFlow, MarketSnackError } from "@/lib/marketsnack";
 import { isTradeableIdea, passesQualityFilter, withinMoneyness, MONEYNESS_CAP } from "@/lib/risk";
 import { loadTrades, saveTrades } from "@/lib/store";
@@ -31,16 +31,6 @@ interface SseEvent {
 }
 function sse(event: SseEvent): string {
   return `data: ${JSON.stringify(event)}\n\n`;
-}
-
-/** Se queda con un solo trade por contrato: el de mayor premium. */
-function dedupeByContract(rows: FlowRow[]): FlowRow[] {
-  const best = new Map<string, FlowRow>();
-  for (const r of rows) {
-    const prev = best.get(r.symbol);
-    if (!prev || r.premium > prev.premium) best.set(r.symbol, r);
-  }
-  return [...best.values()];
 }
 
 function toFlowLite(t: FlowRow): FlowLite {

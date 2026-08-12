@@ -304,6 +304,16 @@ function scoreRows(rows: FlowRow[]): void {
   }
 }
 
+/** Se queda con un solo trade por contrato: el de mayor premium. */
+export function dedupeByContract(rows: FlowRow[]): FlowRow[] {
+  const best = new Map<string, FlowRow>();
+  for (const r of rows) {
+    const prev = best.get(r.symbol);
+    if (!prev || r.premium > prev.premium) best.set(r.symbol, r);
+  }
+  return [...best.values()];
+}
+
 // ---- Detección de racimos (acumulación de trades) ----
 export const CLUSTER_WINDOW_MS = 5 * 60 * 1000; // gap máx entre trades del racimo
 export const CLUSTER_MIN_COUNT = 3; // mínimo de trades para contar como racimo

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  aggressionOf, aggressionScore, classifyFlow, detectClusters,
+  aggressionOf, aggressionScore, classifyFlow, dedupeByContract, detectClusters,
   convictionScore, dominanceScore, executionLevel, executionScore,
   deltaScore, expiryScore, gammaScore, legScore, orderSizeScore, thetaScore,
   unusualityScore, unusualTradeScore,
@@ -160,6 +160,27 @@ describe("classifyFlow", () => {
       NOW,
     );
     expect(interesting.map((r) => r.premium)).toEqual([2_000_000, 500_000, 60_000]);
+  });
+});
+
+describe("dedupeByContract", () => {
+  it("se queda con el trade de mayor premium por símbolo", () => {
+    const raw = [
+      trade({ id: 1, symbol: "TSLA261120P00305000", premium: 1170 }),
+      trade({ id: 2, symbol: "TSLA261120P00305000", premium: 50000 }),
+      trade({ id: 3, symbol: "AAPL261120C00200000", premium: 8000 }),
+    ];
+    const { rows } = classifyFlow(raw, NOW);
+    const deduped = dedupeByContract(rows);
+    expect(deduped).toHaveLength(2);
+    const tsla = deduped.find((r) => r.symbol === "TSLA261120P00305000");
+    expect(tsla?.id).toBe(2);
+  });
+
+  it("no toca las filas si ya hay una sola por contrato", () => {
+    const raw = [trade({ id: 1, symbol: "TSLA261120P00305000" })];
+    const { rows } = classifyFlow(raw, NOW);
+    expect(dedupeByContract(rows)).toHaveLength(1);
   });
 });
 

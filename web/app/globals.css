@@ -1061,3 +1061,12 @@ tfoot .totals td {
 }
 .paperplan-contracts { width: 54px; text-align: right; }
 .paperplan-alert-note { font-size: 13px; margin: -4px 0 4px; }
+
+.scanner-card { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.scanner-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.scanner-head h3 { margin: 0; font-size: 15px; }
+.scanner-steps { margin: 0; padding-left: 18px; font-size: 12px; color: var(--muted); max-height: 160px; overflow-y: auto; }
+.scanner-result { font-size: 13px; }
+.scanner-result ul { margin: 4px 0; padding-left: 18px; }
+.scanner-result details { margin-top: 6px; font-size: 12px; color: var(--muted); }
+.scanner-result summary { cursor: pointer; }
