@@ -7,19 +7,22 @@
     "build": "next build",
     "start": "next start",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "refresh:marketsnack": "node scripts/refresh-marketsnack-cookie.mjs"
   },
   "dependencies": {
+    "dotenv": "^17.4.2",
     "lightweight-charts": "^4.2.3",
-    "next": "15.1.6",
-    "react": "19.0.0",
-    "react-dom": "19.0.0"
+    "next": "^16.3.0",
+    "playwright": "^1.62.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
     "@types/node": "22.10.7",
-    "@types/react": "19.0.7",
-    "@types/react-dom": "19.0.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
     "typescript": "5.7.3",
-    "vitest": "3.0.4"
+    "vitest": "^3.2.7"
   }
 }

@@ -5,6 +5,11 @@
 next-env.d.ts
 *.tsbuildinfo
 
+# Next.js 16 los regenera solo en cada `next dev` (agentRules) — documentación
+# de Next para asistentes de código, no algo que se edite a mano.
+/AGENTS.md
+/CLAUDE.md
+
 # secrets — never commit
 .env
 .env.local

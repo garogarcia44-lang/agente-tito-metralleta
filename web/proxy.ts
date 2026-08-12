@@ -12,7 +12,7 @@ function unauthorized(): NextResponse {
   });
 }
 
-export function middleware(request: NextRequest): NextResponse {
+export function proxy(request: NextRequest): NextResponse {
   const user = process.env.BASIC_AUTH_USER;
   const pass = process.env.BASIC_AUTH_PASSWORD;
   if (!user || !pass) return NextResponse.next();

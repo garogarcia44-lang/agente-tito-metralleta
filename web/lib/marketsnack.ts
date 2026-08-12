@@ -1,5 +1,7 @@
 // Cliente del API interno de MarketSnack (app.marketsnack.com). Solo servidor.
-// Auth por cookie de sesión (MARKETSNACK_COOKIE en .env.local). Ver SCOREDCARD/Scoredcard.md.
+// Auth por cookie de sesión (lib/marketsnackSession.ts: data/marketsnack-session.json
+// refrescada sola por scripts/refresh-marketsnack-cookie.mjs, con MARKETSNACK_COOKIE
+// en .env.local como respaldo manual). Ver SCOREDCARD/Scoredcard.md.
 //
 // Además del flujo (Time & Sales), MarketSnack expone su propia cadena de
 // opciones completa por vencimiento (`/api/assets/{TICKER}/option_chain_extended`),
@@ -10,6 +12,7 @@
 import type { CompanyInfo, RawContract } from "./types";
 import type { RawTrade } from "./flow";
 import { marketDateStr } from "./occ";
+import { loadMarketsnackCookie } from "./marketsnackSession";
 
 const BASE_URL = "https://app.marketsnack.com";
 
@@ -22,14 +25,14 @@ export class MarketSnackError extends Error {
   }
 }
 
-function cookie(): string {
-  const c = process.env.MARKETSNACK_COOKIE;
-  if (!c || !c.trim()) {
+async function cookie(): Promise<string> {
+  const c = await loadMarketsnackCookie();
+  if (!c) {
     throw new MarketSnackError(
-      "Falta MARKETSNACK_COOKIE en .env.local. Copia tu cookie de sesión de app.marketsnack.com.",
+      "Falta la cookie de MarketSnack. Corre scripts/refresh-marketsnack-cookie.mjs o pega MARKETSNACK_COOKIE en .env.local.",
     );
   }
-  return c.trim();
+  return c;
 }
 
 export interface FetchFlowOptions {
@@ -76,7 +79,7 @@ async function paginate(
   const clean = symbol;
   const period = opts.period ?? "5d";
   const maxPages = opts.maxPages ?? 10;
-  const cookieHeader = cookie();
+  const cookieHeader = await cookie();
 
   const trades: RawTrade[] = [];
   let token: string | null = null;
@@ -107,7 +110,7 @@ async function paginate(
     // Sesión inválida/expirada → MarketSnack redirige a /login o responde 401.
     if (res.status === 401 || res.status === 403 || (res.status >= 300 && res.status < 400)) {
       throw new MarketSnackError(
-        "Sesión de MarketSnack inválida o expirada. Actualiza MARKETSNACK_COOKIE en .env.local.",
+        "Sesión de MarketSnack inválida o expirada. Se refresca sola en el próximo pase de scripts/refresh-marketsnack-cookie.mjs, o corre el script a mano.",
         res.status,
       );
     }
@@ -165,7 +168,7 @@ async function throttle(): Promise<void> {
 }
 
 async function getJson<T>(path: string): Promise<T | null> {
-  const cookieHeader = cookie();
+  const cookieHeader = await cookie();
   await throttle();
   const res = await fetch(`${BASE_URL}${path}`, {
     headers: { Accept: "application/json", Cookie: cookieHeader },
@@ -175,7 +178,7 @@ async function getJson<T>(path: string): Promise<T | null> {
   if (res.status === 404) return null;
   if (res.status === 401 || res.status === 403 || (res.status >= 300 && res.status < 400)) {
     throw new MarketSnackError(
-      "Sesión de MarketSnack inválida o expirada. Actualiza MARKETSNACK_COOKIE en .env.local.",
+      "Sesión de MarketSnack inválida o expirada. Se refresca sola en el próximo pase de scripts/refresh-marketsnack-cookie.mjs, o corre el script a mano.",
       res.status,
     );
   }

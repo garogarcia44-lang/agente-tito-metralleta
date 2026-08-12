@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.tito.marketsnack-refresh</string>
+
+	<key>ProgramArguments</key>
+	<array>
+		<string>/opt/homebrew/bin/node</string>
+		<string>/Users/jorge/Downloads/agente-tito-metralleta-main/web/scripts/refresh-marketsnack-cookie.mjs</string>
+	</array>
+
+	<key>WorkingDirectory</key>
+	<string>/Users/jorge/Downloads/agente-tito-metralleta-main/web</string>
+
+	<!-- Cada 6 horas: la sesión de MarketSnack ha durado de 1 a pocos días en la
+	     práctica, así que este margen la refresca bastante antes de que expire
+	     sin llamar a MarketSnack más seguido de lo necesario. -->
+	<key>StartInterval</key>
+	<integer>21600</integer>
+
+	<!-- Corre una vez también al cargar el job (p. ej. tras reiniciar el Mac
+	     mini o recién instalado), no solo en el primer intervalo. -->
+	<key>RunAtLoad</key>
+	<true/>
+
+	<key>StandardOutPath</key>
+	<string>/Users/jorge/Downloads/agente-tito-metralleta-main/web/data/marketsnack-refresh-stdout.log</string>
+	<key>StandardErrorPath</key>
+	<string>/Users/jorge/Downloads/agente-tito-metralleta-main/web/data/marketsnack-refresh-stderr.log</string>
+
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>PATH</key>
+		<string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+	</dict>
+</dict>
+</plist>
