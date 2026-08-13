@@ -14,11 +14,12 @@
 	<key>WorkingDirectory</key>
 	<string>/Users/jorge/Downloads/agente-tito-metralleta-main/web</string>
 
-	<!-- Cada 6 horas: la sesión de MarketSnack ha durado de 1 a pocos días en la
-	     práctica, así que este margen la refresca bastante antes de que expire
-	     sin llamar a MarketSnack más seguido de lo necesario. -->
+	<!-- Cada 1 hora. Antes eran 6h asumiendo que la sesión duraba "de 1 a pocos
+	     días" — falso: medido en vivo el 2026-08-13, una cookie refrescada a las
+	     5:59 AM ET ya estaba muerta a las 9:47 AM ET (bajo 4 horas). Un margen de
+	     1h dado ese dato real. -->
 	<key>StartInterval</key>
-	<integer>21600</integer>
+	<integer>3600</integer>
 
 	<!-- Corre una vez también al cargar el job (p. ej. tras reiniciar el Mac
 	     mini o recién instalado), no solo en el primer intervalo. -->
