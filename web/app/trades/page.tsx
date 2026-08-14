@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import NavTabs from "@/app/components/NavTabs";
+import MonitorCard from "@/app/components/MonitorCard";
 import OpportunityScanCard from "@/app/components/OpportunityScanCard";
 import PaperPlanForm from "@/app/components/PaperPlanForm";
 import PaperResultsPanel from "@/app/components/PaperResultsPanel";
@@ -96,6 +97,8 @@ export default function TradesPage() {
           endpoint="/api/scan/swing"
           onCreated={load}
         />
+
+        <MonitorCard onChanged={load} />
 
         <PaperPlanForm
           busy={busy}

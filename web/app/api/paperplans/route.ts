@@ -5,23 +5,22 @@
 //                              editar contratos) y devuelve { plans, alert? } ya actualizado
 //   DELETE ?id=             → borra un plan (limpieza manual, Fase A)
 //
-// Fase A: los planes se crean a mano desde la UI. No hay detección automática ni
-// monitoreo de cotizaciones en vivo todavía — eso es una fase futura y se pide
-// aprobada aparte. Esta ruta solo orquesta I/O; toda la máquina de estados y el
-// cálculo de P&L viven en `lib/paperPlan.ts`, puro y testeado.
+// Los planes se pueden crear/activar/cerrar a mano desde /trades (esta ruta), o
+// solos vía app/api/monitor (ver lib/planMonitor.ts) — ambos caminos aplican la
+// MISMA lógica de transición (lib/paperPlanActions.ts), así que el resultado es
+// idéntico venga de un clic o del monitoreo automático. Esta ruta solo orquesta
+// I/O; toda la máquina de estados y el cálculo de P&L viven en `lib/paperPlan.ts`,
+// puro y testeado.
 //
-// Fase B: cada transición relevante dispara una alerta de WhatsApp (`paperAlertSender.ts`).
-// Sin TWILIO_* configurado no se manda nada — pero la acción del plan igual se
-// completa y se guarda; el resultado del intento de alerta viaja en `alert` para
-// que la UI pueda mostrarlo, nunca se oculta.
+// Cada transición relevante dispara una alerta de Telegram (`paperAlertSender.ts`).
+// Sin configurar no se manda nada — pero la acción del plan igual se completa y
+// se guarda; el resultado del intento de alerta viaja en `alert` para que la UI
+// pueda mostrarlo, nunca se oculta.
 
 import { randomUUID } from "crypto";
 import {
   InvalidPlanTransitionError,
-  activatePlan,
-  closePlan,
   createPaperPlan,
-  expirePlan,
   raiseDynamicStop,
   updateHighestPrice,
   type CreatePlanInput,
@@ -30,7 +29,7 @@ import {
 } from "@/lib/paperPlan";
 import { loadPaperPlans, savePaperPlans } from "@/lib/paperPlansStore";
 import { sendPaperAlertOnce, type SendPaperAlertResult } from "@/lib/paperAlertSender";
-import { captureNewsSnapshot } from "@/lib/tradeJournal";
+import { applyActivate, applyClose, applyExpire } from "@/lib/paperPlanActions";
 import type { AlertEvent } from "@/lib/paperAlert";
 
 async function notify(
@@ -107,10 +106,8 @@ export async function POST(request: Request) {
       const entry = readQuote(body.entry);
       if (!entry) return Response.json({ error: "Cotización de entrada inválida." }, { status: 400 });
       const reason = typeof body.reason === "string" ? body.reason : undefined;
-      const activated = activatePlan(plan, entry, now, reason);
-      const updated = { ...activated, newsAtEntry: await captureNewsSnapshot(activated.ticker) };
+      const { plan: updated, alert } = await applyActivate(plan, entry, now, reason);
       const saved = await savePaperPlans([...others, updated]);
-      const alert = await notify(updated, "activated", { observedPrice: entry.price, observedAt: entry.at });
       return Response.json({ plans: saved.plans, alert });
     }
 
@@ -149,18 +146,10 @@ export async function POST(request: Request) {
       if (!exit || typeof exit.price !== "number" || typeof exit.at !== "string") {
         return Response.json({ error: "Falta el precio/hora de salida." }, { status: 400 });
       }
-      const closed = closePlan(
-        plan,
-        body.outcome,
-        { price: exit.price, at: exit.at },
-        body.reason,
-        now,
+      const { plan: updated, alert } = await applyClose(
+        plan, body.outcome, { price: exit.price, at: exit.at }, body.reason, now,
       );
-      const updated = { ...closed, newsAtExit: await captureNewsSnapshot(closed.ticker) };
       const saved = await savePaperPlans([...others, updated]);
-      const alert = await notify(updated, body.outcome === "ganada" ? "target_hit" : "stop_hit", {
-        observedPrice: exit.price, observedAt: exit.at,
-      });
       return Response.json({ plans: saved.plans, alert });
     }
 
@@ -168,10 +157,8 @@ export async function POST(request: Request) {
       if (typeof body.reason !== "string") {
         return Response.json({ error: "Falta reason." }, { status: 400 });
       }
-      const expired = expirePlan(plan, body.reason, now);
-      const updated = { ...expired, newsAtExit: await captureNewsSnapshot(expired.ticker) };
+      const { plan: updated, alert } = await applyExpire(plan, body.reason, now);
       const saved = await savePaperPlans([...others, updated]);
-      const alert = await notify(updated, "expired");
       return Response.json({ plans: saved.plans, alert });
     }
 

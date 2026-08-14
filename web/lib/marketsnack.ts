@@ -274,6 +274,24 @@ function toRawContract(o: MsOption): RawContract {
   };
 }
 
+/**
+ * Los contratos de UN SOLO vencimiento exacto — sin pasar por la lista de los
+ * primeros MARKETSNACK_MAX_EXPIRATIONS que usa `fetchOptionChain`. Existe para
+ * el monitoreo de planes paper (`app/api/monitor`): un plan swing puede tener
+ * un vencimiento a más de un año (LEAPS), muy por fuera de esa ventana — pedir
+ * la cadena completa nunca lo alcanzaría. Aquí se pide directo el vencimiento
+ * exacto que ya trae guardado el plan (`plan.expiration`), un solo request.
+ */
+export async function fetchContractsForExpiration(
+  ticker: string,
+  expirationDate: string,
+): Promise<RawContract[]> {
+  const clean = ticker.trim().toUpperCase();
+  if (!clean) throw new MarketSnackError("Ticker vacío.");
+  const options = await fetchOptionChainExtended(clean, expirationDate);
+  return options.map(toRawContract);
+}
+
 export interface FetchProgress {
   /** Se llama al terminar cada vencimiento, con el índice y el total acumulado. */
   onPage?: (page: number, accumulated: number) => void | Promise<void>;

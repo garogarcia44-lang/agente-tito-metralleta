@@ -98,13 +98,35 @@ describe("derivePlanTargets", () => {
     expect(out.targetUnderlying).toBeCloseTo(em.upper1, 6);
   });
 
-  it("reproyecta con Black-Scholes: el objetivo en prima coincide con bsPrice del subyacente objetivo", () => {
+  it("reproyecta con Black-Scholes: el objetivo en prima es entryPrice + el delta modelado (spot → objetivo)", () => {
     const levels = report([lvl(97, "soporte", 60, 3)], [lvl(104, "resistencia", 70, 4)]);
     const out = derivePlanTargets({
       spot: 100, iv: 0.4, days: 5, contractType: "call", strike: 100,
       entryPrice: 2, levels,
     });
-    const expected = bsPrice(104, 100, 5 / 365, 0.4, "call");
-    expect(out.target).toBeCloseTo(expected, 6);
+    const delta = bsPrice(104, 100, 5 / 365, 0.4, "call") - bsPrice(100, 100, 5 / 365, 0.4, "call");
+    expect(out.target).toBeCloseTo(2 + delta, 6);
+  });
+
+  it("target y stop SIEMPRE quedan del lado correcto de entryPrice, aunque la prima real observada esté muy lejos del valor absoluto del modelo (bug real 2026-08-14: antes el objetivo podía salir por DEBAJO de la entrada)", () => {
+    const levels = report([lvl(97, "soporte", 60, 3)], [lvl(104, "resistencia", 70, 4)]);
+    // entryPrice muy por encima de lo que el modelo diría para spot=100 —
+    // exactamente el escenario real (prima observada en el flujo real vs.
+    // valuación teórica de Black-Scholes con una IV estimada).
+    const farOffEntry = 70;
+    const call = derivePlanTargets({
+      spot: 100, iv: 0.4, days: 5, contractType: "call", strike: 100,
+      entryPrice: farOffEntry, levels,
+    });
+    expect(call.target).toBeGreaterThan(farOffEntry);
+    expect(call.initialStop).toBeLessThan(farOffEntry);
+
+    const putLevels = report([lvl(98, "soporte", 80, 2)], [lvl(103, "resistencia", 55, 3)]);
+    const put = derivePlanTargets({
+      spot: 100, iv: 0.4, days: 5, contractType: "put", strike: 100,
+      entryPrice: farOffEntry, levels: putLevels,
+    });
+    expect(put.target).toBeGreaterThan(farOffEntry);
+    expect(put.initialStop).toBeLessThan(farOffEntry);
   });
 });

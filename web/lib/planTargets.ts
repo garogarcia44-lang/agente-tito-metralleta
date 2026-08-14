@@ -92,9 +92,25 @@ export function derivePlanTargets(input: PlanTargetsInput): PlanTargets {
   const sigmaStop = spot + (bullish ? -1 : 1) * em.sigma * STOP_FALLBACK_SIGMA_FRACTION;
   const stopUnderlying = stopLevel?.price ?? sigmaStop;
 
+  // Reproyección ANCLADA a la prima real (entryPrice), no un valor absoluto de
+  // Black-Scholes. Motivo (bug real, encontrado 2026-08-14 al construir el
+  // monitoreo automático — ver app/api/monitor): el valor absoluto de
+  // bsPrice(spot actual, ...) casi nunca coincide con la prima real observada
+  // (IV estimada vs. real, skew, spread) — así que un objetivo/stop calculado
+  // como valor absoluto puede terminar del lado EQUIVOCADO de entryPrice (un
+  // "objetivo" por debajo de la entrada, o un "stop" por arriba), lo cual
+  // rompe cualquier lógica que compare la prima en vivo contra target/stop.
+  // Solución: confiar en el modelo solo para el DELTA implícito por moverse de
+  // spot a targetUnderlying/stopUnderlying, y sumar ese delta a la prima real
+  // — así target/stop quedan garantizados del lado correcto de entryPrice
+  // (el signo del delta lo asegura: la prima de una opción siempre se mueve a
+  // favor cuando el subyacente se mueve a favor, sea call o put).
   const T = Math.max(days, 0) / 365;
-  const target = bsPrice(targetUnderlying, strike, T, iv, contractType) || entryPrice;
-  const initialStop = bsPrice(stopUnderlying, strike, T, iv, contractType) || 0;
+  const baseline = bsPrice(spot, strike, T, iv, contractType);
+  const targetDelta = bsPrice(targetUnderlying, strike, T, iv, contractType) - baseline;
+  const stopDelta = bsPrice(stopUnderlying, strike, T, iv, contractType) - baseline;
+  const target = Math.max(entryPrice + targetDelta, 0) || entryPrice;
+  const initialStop = Math.max(entryPrice + stopDelta, 0);
 
   return {
     trigger: entryPrice,
