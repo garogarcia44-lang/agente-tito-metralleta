@@ -16,6 +16,7 @@ function row(over: Partial<Row> = {}): Row {
     volume: 0,
     price: 5,
     priceSource: "last_trade",
+    bid: null, ask: null, mid: null,
     openPremium: 5 * openInterest,
     notionalValue: openInterest * 100 * strike,
     ...over,

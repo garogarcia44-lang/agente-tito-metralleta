@@ -15,6 +15,7 @@ function row(strike: number, type: "call" | "put", oi: number, exp = "2026-08-21
     volume: 0,
     price: 1,
     priceSource: "last_trade",
+    bid: null, ask: null, mid: null,
     openPremium: oi,
     notionalValue: strike * oi * 100,
   };

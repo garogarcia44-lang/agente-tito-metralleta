@@ -270,6 +270,7 @@ function toRawContract(o: MsOption): RawContract {
       ticker: o.symbol,
     },
     last_trade: { price: o.price ?? undefined },
+    last_quote: o.last_quote,
     open_interest: o.open_interest,
   };
 }

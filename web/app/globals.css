@@ -1064,9 +1064,27 @@ tfoot .totals td {
 
 .paperplan-news-row td { background: var(--panel); padding: 10px 14px; }
 .paperplan-news { display: flex; flex-wrap: wrap; gap: 24px; }
-.paperplan-news-group { min-width: 220px; }
+.paperplan-news-group, .dossier-news-group { min-width: 220px; }
 .paperplan-news-list { margin: 4px 0 0; padding-left: 18px; font-size: 12px; }
 .paperplan-news-list li { margin-bottom: 4px; }
+
+.dossier { display: flex; flex-direction: column; gap: 14px; max-width: 720px; }
+.dossier-facts {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px 20px; font-size: 13px;
+}
+.dossier-section { border-top: 1px solid var(--border); padding-top: 10px; }
+.dossier-notes { margin: 4px 0 0; font-size: 13px; }
+.dossier-timeline { margin: 4px 0 0; padding-left: 18px; font-size: 12px; }
+.dossier-timeline li { margin-bottom: 3px; }
+.dossier-timeline-date { color: var(--muted); }
+.dossier-score-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 6px 16px; font-size: 13px; margin-top: 4px;
+}
+.dossier-score-grid > div { display: flex; justify-content: space-between; gap: 8px; }
+.dossier-score-label { color: var(--muted); text-transform: capitalize; }
+.dossier-score-total { font-weight: 600; grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 6px; margin-top: 2px; }
 
 .scanner-card { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
 .scanner-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

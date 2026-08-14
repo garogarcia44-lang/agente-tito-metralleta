@@ -2,7 +2,7 @@
 
 import { Fragment, useState } from "react";
 import { planPnl, type PaperPlan, type PlanStatus } from "@/lib/paperPlan";
-import type { NewsItem } from "@/lib/news";
+import TradeDossier from "./TradeDossier";
 
 const STATUS_CHIP: Record<PlanStatus, string> = {
   pendiente: "chip-neutral",
@@ -75,14 +75,13 @@ export default function PaperPlansTable({
             <th className="num">Contratos</th>
             <th className="num">P&amp;L paper</th>
             <th>Acciones</th>
-            <th>Diario</th>
+            <th>Expediente</th>
             <th />
           </tr>
         </thead>
         <tbody>
           {sorted.map((p) => {
             const pnl = planPnl(p);
-            const newsCount = (p.newsAtEntry?.length ?? 0) + (p.newsAtExit?.length ?? 0);
             const isOpen = newsOpen[p.id] ?? false;
             return (
               <Fragment key={p.id}>
@@ -175,16 +174,12 @@ export default function PaperPlansTable({
                   )}
                 </td>
                 <td>
-                  {newsCount > 0 ? (
-                    <button
-                      className="copy-btn"
-                      onClick={() => setNewsOpen((s) => ({ ...s, [p.id]: !isOpen }))}
-                    >
-                      {isOpen ? "Ocultar" : `Ver (${newsCount})`}
-                    </button>
-                  ) : (
-                    <span className="muted">—</span>
-                  )}
+                  <button
+                    className="copy-btn"
+                    onClick={() => setNewsOpen((s) => ({ ...s, [p.id]: !isOpen }))}
+                  >
+                    {isOpen ? "Ocultar" : "Ver expediente"}
+                  </button>
                 </td>
                 <td>
                   <button
@@ -199,7 +194,7 @@ export default function PaperPlansTable({
               {isOpen && (
                 <tr className="paperplan-news-row">
                   <td colSpan={14}>
-                    <NewsJournal plan={p} />
+                    <TradeDossier plan={p} />
                   </td>
                 </tr>
               )}
@@ -212,30 +207,3 @@ export default function PaperPlansTable({
   );
 }
 
-function NewsJournal({ plan }: { plan: PaperPlan }) {
-  const entry = plan.newsAtEntry ?? [];
-  const exit = plan.newsAtExit ?? [];
-  if (entry.length === 0 && exit.length === 0) return null;
-  return (
-    <div className="paperplan-news">
-      {entry.length > 0 && <NewsGroup title="Noticias al entrar" items={entry} />}
-      {exit.length > 0 && <NewsGroup title="Noticias al cerrar/expirar" items={exit} />}
-    </div>
-  );
-}
-
-function NewsGroup({ title, items }: { title: string; items: NewsItem[] }) {
-  return (
-    <div className="paperplan-news-group">
-      <div className="muted">{title}</div>
-      <ul className="paperplan-news-list">
-        {items.map((n) => (
-          <li key={n.id}>
-            <a href={n.url} target="_blank" rel="noreferrer">{n.title}</a>
-            <span className="muted"> · {n.publisher} · {new Date(n.publishedUtc).toLocaleString()}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}

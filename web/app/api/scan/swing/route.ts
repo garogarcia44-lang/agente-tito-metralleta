@@ -217,6 +217,10 @@ export async function GET() {
             origin: "auto",
             rulesVersion: RULES_VERSION,
             notes: factors.join(" · "),
+            scoreBreakdown: {
+              flow: score.flow, gex: score.gex, levels: score.levels,
+              liquidity: score.liquidity, persistence: score.persistence, total: score.total,
+            },
           };
           const plan: PaperPlan = createPaperPlan(input, now);
           plans = [...plans, plan];

@@ -15,7 +15,7 @@
 
 import { loadPaperPlans, savePaperPlans } from "@/lib/paperPlansStore";
 import { fetchContractsForExpiration } from "@/lib/marketsnack";
-import { toRow } from "@/lib/compute";
+import { toRow, resolveTradeQuote } from "@/lib/compute";
 import { evaluatePlan } from "@/lib/planMonitor";
 import { updateHighestPrice, type PaperPlan } from "@/lib/paperPlan";
 import { applyActivate, applyClose, applyExpire } from "@/lib/paperPlanActions";
@@ -79,28 +79,46 @@ export async function GET() {
           }
 
           const row = rows.find((r) => r.optionTicker === plan.symbol) ?? null;
-          if (!row || row.price == null) {
+          if (!row) {
             dataIssues.push({
               id: plan.id, ticker: plan.ticker,
-              reason: "Contrato no encontrado en ese vencimiento o sin precio disponible.",
+              reason: "Contrato no encontrado en ese vencimiento.",
             });
             continue;
           }
 
-          const quote = { price: row.price, source: "marketsnack", at: now.toISOString() };
+          // "pendiente" está por COMPRAR (entrar) → cruza al ask, el precio real de
+          // compra. "activa" está por revisar si conviene VENDER (cerrar) → cruza al
+          // bid, el precio real de venta. Ver lib/compute.ts:resolveTradeQuote.
+          const side = plan.status === "pendiente" ? "buy" : "sell";
+          const resolved = resolveTradeQuote(row, side);
+          if (!resolved) {
+            dataIssues.push({
+              id: plan.id, ticker: plan.ticker,
+              reason: "Sin cotización disponible (ni bid/ask ni última operación).",
+            });
+            continue;
+          }
+
+          const quote = { price: resolved.price, source: resolved.source, at: now.toISOString() };
           const action = evaluatePlan(plan, quote, now);
           if (!action) continue;
 
           if (action.type === "activate") {
-            const { plan: updated } = await applyActivate(plan, action.entry, now);
+            const { plan: updated } = await applyActivate(
+              plan, action.entry, now,
+              `Activado por el monitoreo automático (primer chequeo tras crearse, sin esperar un precio ` +
+              `específico) — precio de entrada tomado del ${resolved.source}.`,
+            );
             current = current.map((p) => (p.id === updated.id ? updated : p));
             activated.push({ id: plan.id, ticker: plan.ticker, entry: action.entry.price });
-            send({ type: "step", label: `${plan.ticker}: activado a ${action.entry.price}.` });
+            send({ type: "step", label: `${plan.ticker}: activado a ${action.entry.price} (${resolved.source}).` });
           } else if (action.type === "close") {
-            const { plan: updated } = await applyClose(plan, action.outcome, action.exit, action.reason, now);
+            const reason = `${action.reason} Precio de salida tomado del ${resolved.source}.`;
+            const { plan: updated } = await applyClose(plan, action.outcome, action.exit, reason, now);
             current = current.map((p) => (p.id === updated.id ? updated : p));
             closed.push({ id: plan.id, ticker: plan.ticker, outcome: action.outcome, exit: action.exit.price });
-            send({ type: "step", label: `${plan.ticker}: cerrado ${action.outcome} a ${action.exit.price}.` });
+            send({ type: "step", label: `${plan.ticker}: cerrado ${action.outcome} a ${action.exit.price} (${resolved.source}).` });
           } else if (action.type === "expire") {
             const { plan: updated } = await applyExpire(plan, action.reason, now);
             current = current.map((p) => (p.id === updated.id ? updated : p));

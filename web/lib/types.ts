@@ -20,6 +20,12 @@ export interface RawContract {
   last_trade?: {
     price?: number;
   };
+  /** Bid/ask/mid reales de MarketSnack — antes se descartaban en toRawContract. */
+  last_quote?: {
+    bid?: number;
+    ask?: number;
+    mid?: number;
+  };
   open_interest?: number;
   underlying_asset?: {
     price?: number;
@@ -40,6 +46,10 @@ export interface Row {
   volume: number;
   price: number | null;
   priceSource: PriceSource;
+  /** Bid/ask/mid reales — null si MarketSnack no los trae para este contrato (ilíquido). */
+  bid: number | null;
+  ask: number | null;
+  mid: number | null;
   openPremium: number | null;
   notionalValue: number;
 }

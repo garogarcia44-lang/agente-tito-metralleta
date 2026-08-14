@@ -74,6 +74,13 @@ export interface PaperPlan {
    */
   newsAtEntry: NewsItem[] | null;
   newsAtExit: NewsItem[] | null;
+  /**
+   * Sub-scores reales de lib/intradayScore.ts / lib/swingScore.ts (flow, gex,
+   * levels, liquidity, freshness/persistence, total) — el mismo desglose que
+   * ya se resume en texto dentro de `notes`, pero como números que se puedan
+   * mostrar por separado. null en planes manuales (no hay score que guardar).
+   */
+  scoreBreakdown: Record<string, number> | null;
 }
 
 export interface CreatePlanInput {
@@ -93,6 +100,7 @@ export interface CreatePlanInput {
   origin?: PlanOrigin;
   rulesVersion?: string | null;
   notes?: string | null;
+  scoreBreakdown?: Record<string, number> | null;
 }
 
 /** Crea un plan en estado `pendiente`. El stop dinámico arranca igual al inicial. */
@@ -129,6 +137,7 @@ export function createPaperPlan(input: CreatePlanInput, now: Date): PaperPlan {
     notes: input.notes ?? null,
     newsAtEntry: null,
     newsAtExit: null,
+    scoreBreakdown: input.scoreBreakdown ?? null,
   };
 }
 
@@ -169,7 +178,7 @@ export interface Quote {
 }
 
 /** `pendiente` → `activa`. Registra precio/hora de entrada y arranca `highestPrice`. */
-export function activatePlan(plan: PaperPlan, entry: Quote, now: Date, reason = "Gatillo cruzado."): PaperPlan {
+export function activatePlan(plan: PaperPlan, entry: Quote, now: Date, reason = "Activado manualmente."): PaperPlan {
   const withStatus = pushStatus(plan, "activa", now.toISOString(), reason);
   return {
     ...withStatus,

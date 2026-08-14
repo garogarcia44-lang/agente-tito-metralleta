@@ -46,6 +46,7 @@ describe("createPaperPlan", () => {
     expect(plan.rulesVersion).toBeNull();
     expect(plan.newsAtEntry).toBeNull();
     expect(plan.newsAtExit).toBeNull();
+    expect(plan.scoreBreakdown).toBeNull();
   });
 });
 

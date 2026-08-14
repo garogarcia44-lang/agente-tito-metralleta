@@ -4,6 +4,7 @@ import {
   countExpirations,
   notionalValue,
   openPremium,
+  resolveTradeQuote,
   sortByOpenInterestDesc,
   toRow,
 } from "./compute";
@@ -87,6 +88,63 @@ describe("toRow", () => {
     expect(row.openInterest).toBe(0);
     expect(row.notionalValue).toBe(0);
     expect(row.openPremium).toBeNull();
+    expect(row.bid).toBeNull();
+    expect(row.ask).toBeNull();
+    expect(row.mid).toBeNull();
+  });
+
+  it("mapea bid/ask/mid reales de last_quote", () => {
+    const raw: RawContract = {
+      last_trade: { price: 5 },
+      last_quote: { bid: 4.8, ask: 5.2, mid: 5.0 },
+    };
+    const row = toRow(raw);
+    expect(row.bid).toBe(4.8);
+    expect(row.ask).toBe(5.2);
+    expect(row.mid).toBe(5.0);
+  });
+
+  it("ignora bid/ask/mid no positivos (contrato sin cotización real)", () => {
+    const raw: RawContract = { last_quote: { bid: 0, ask: 0, mid: 0 } };
+    const row = toRow(raw);
+    expect(row.bid).toBeNull();
+    expect(row.ask).toBeNull();
+    expect(row.mid).toBeNull();
+  });
+});
+
+describe("resolveTradeQuote", () => {
+  function row(p: Partial<Row>): Row {
+    return {
+      optionTicker: "X", contractType: "call", expiration: "2026-01-01", strike: 100,
+      openInterest: 0, volume: 0, price: null, priceSource: "none",
+      bid: null, ask: null, mid: null, openPremium: null, notionalValue: 0,
+      ...p,
+    };
+  }
+
+  it("comprar (entrar) usa el ask real", () => {
+    expect(resolveTradeQuote(row({ bid: 4.8, ask: 5.2, price: 5.0, priceSource: "last_trade" }), "buy"))
+      .toEqual({ price: 5.2, source: "ask" });
+  });
+
+  it("vender (cerrar) usa el bid real", () => {
+    expect(resolveTradeQuote(row({ bid: 4.8, ask: 5.2, price: 5.0, priceSource: "last_trade" }), "sell"))
+      .toEqual({ price: 4.8, source: "bid" });
+  });
+
+  it("sin bid/ask cae a mid", () => {
+    expect(resolveTradeQuote(row({ mid: 5.0, price: 4.9, priceSource: "last_trade" }), "buy"))
+      .toEqual({ price: 5.0, source: "mid" });
+  });
+
+  it("sin bid/ask/mid cae al precio ya resuelto por contractPrice, con su fuente real", () => {
+    expect(resolveTradeQuote(row({ price: 4.9, priceSource: "day_close" }), "sell"))
+      .toEqual({ price: 4.9, source: "day_close" });
+  });
+
+  it("null si no hay ninguna cotización disponible", () => {
+    expect(resolveTradeQuote(row({}), "buy")).toBeNull();
   });
 });
 
