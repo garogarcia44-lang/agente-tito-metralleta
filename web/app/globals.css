@@ -1062,6 +1062,12 @@ tfoot .totals td {
 .paperplan-contracts { width: 54px; text-align: right; }
 .paperplan-alert-note { font-size: 13px; margin: -4px 0 4px; }
 
+.paperplan-news-row td { background: var(--panel); padding: 10px 14px; }
+.paperplan-news { display: flex; flex-wrap: wrap; gap: 24px; }
+.paperplan-news-group { min-width: 220px; }
+.paperplan-news-list { margin: 4px 0 0; padding-left: 18px; font-size: 12px; }
+.paperplan-news-list li { margin-bottom: 4px; }
+
 .scanner-card { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
 .scanner-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .scanner-head h3 { margin: 0; font-size: 15px; }

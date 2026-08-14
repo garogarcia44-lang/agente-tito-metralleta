@@ -13,6 +13,7 @@
 // Funciones puras, sin I/O. La persistencia vive en `paperPlansStore.ts`.
 
 import type { ContractType } from "./types";
+import type { NewsItem } from "./news";
 
 export type PlanStatus = "pendiente" | "activa" | "ganada" | "perdida" | "expirada";
 export type Horizon = "intradia" | "swing";
@@ -65,6 +66,14 @@ export interface PaperPlan {
   rulesVersion: string | null;
   createdAt: string;
   notes: string | null;
+  /**
+   * Diario de noticias reales (Finnhub, `lib/news.ts`) — foto tomada en el momento
+   * de cada transición, no reconstruida después (`fetchTickerNews` solo trae los
+   * últimos 14 días desde "ahora", no un rango histórico arbitrario). null hasta que
+   * ocurre la transición correspondiente, o si la captura falló (best-effort).
+   */
+  newsAtEntry: NewsItem[] | null;
+  newsAtExit: NewsItem[] | null;
 }
 
 export interface CreatePlanInput {
@@ -118,6 +127,8 @@ export function createPaperPlan(input: CreatePlanInput, now: Date): PaperPlan {
     rulesVersion: input.rulesVersion ?? null,
     createdAt: nowIso,
     notes: input.notes ?? null,
+    newsAtEntry: null,
+    newsAtExit: null,
   };
 }
 

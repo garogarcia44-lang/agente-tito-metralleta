@@ -30,6 +30,7 @@ import {
 } from "@/lib/paperPlan";
 import { loadPaperPlans, savePaperPlans } from "@/lib/paperPlansStore";
 import { sendPaperAlertOnce, type SendPaperAlertResult } from "@/lib/paperAlertSender";
+import { captureNewsSnapshot } from "@/lib/tradeJournal";
 import type { AlertEvent } from "@/lib/paperAlert";
 
 async function notify(
@@ -106,7 +107,8 @@ export async function POST(request: Request) {
       const entry = readQuote(body.entry);
       if (!entry) return Response.json({ error: "Cotización de entrada inválida." }, { status: 400 });
       const reason = typeof body.reason === "string" ? body.reason : undefined;
-      const updated = activatePlan(plan, entry, now, reason);
+      const activated = activatePlan(plan, entry, now, reason);
+      const updated = { ...activated, newsAtEntry: await captureNewsSnapshot(activated.ticker) };
       const saved = await savePaperPlans([...others, updated]);
       const alert = await notify(updated, "activated", { observedPrice: entry.price, observedAt: entry.at });
       return Response.json({ plans: saved.plans, alert });
@@ -147,13 +149,14 @@ export async function POST(request: Request) {
       if (!exit || typeof exit.price !== "number" || typeof exit.at !== "string") {
         return Response.json({ error: "Falta el precio/hora de salida." }, { status: 400 });
       }
-      const updated = closePlan(
+      const closed = closePlan(
         plan,
         body.outcome,
         { price: exit.price, at: exit.at },
         body.reason,
         now,
       );
+      const updated = { ...closed, newsAtExit: await captureNewsSnapshot(closed.ticker) };
       const saved = await savePaperPlans([...others, updated]);
       const alert = await notify(updated, body.outcome === "ganada" ? "target_hit" : "stop_hit", {
         observedPrice: exit.price, observedAt: exit.at,
@@ -165,7 +168,8 @@ export async function POST(request: Request) {
       if (typeof body.reason !== "string") {
         return Response.json({ error: "Falta reason." }, { status: 400 });
       }
-      const updated = expirePlan(plan, body.reason, now);
+      const expired = expirePlan(plan, body.reason, now);
+      const updated = { ...expired, newsAtExit: await captureNewsSnapshot(expired.ticker) };
       const saved = await savePaperPlans([...others, updated]);
       const alert = await notify(updated, "expired");
       return Response.json({ plans: saved.plans, alert });

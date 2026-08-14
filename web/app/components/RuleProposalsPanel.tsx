@@ -17,8 +17,9 @@ interface RuleProposal {
   avgEstimatedProbability: number;
   rationale: string;
   createdAt: string;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "auto_applied";
   decidedAt: string | null;
+  source?: "manual_cycle" | "auto_backtest";
 }
 
 interface ScannerRulesState {
@@ -80,7 +81,9 @@ export default function RuleProposalsPanel() {
       <p className="muted">
         Compara la probabilidad estimada promedio de los planes AUTO resueltos contra su tasa
         real de acierto, y propone ajustar el umbral de score si hay una desviación sostenida
-        con muestra suficiente. Nada se aplica solo: cada propuesta se aprueba o se rechaza a mano.
+        con muestra suficiente. Este ciclo nunca se aplica solo: cada propuesta se aprueba o se
+        rechaza a mano. (El backtest semanal automático es un mecanismo aparte, autorizado por
+        Jorge para aplicarse sin esperar aprobación — aparece marcado 🤖 abajo cuando actúa.)
       </p>
 
       <div className="stats">
@@ -126,7 +129,9 @@ export default function RuleProposalsPanel() {
             {decided.map((p) => (
               <li key={p.id}>
                 {RULE_LABEL[p.ruleKey]}: {p.currentValue} → {p.proposedValue} —{" "}
-                {p.status === "approved" ? "✅ aprobada" : "✕ rechazada"}
+                {p.status === "approved" && "✅ aprobada"}
+                {p.status === "rejected" && "✕ rechazada"}
+                {p.status === "auto_applied" && "🤖 aplicada automática (backtest semanal, sin revisión humana)"}
               </li>
             ))}
           </ul>

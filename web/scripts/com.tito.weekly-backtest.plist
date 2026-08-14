@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.tito.weekly-backtest</string>
+
+	<key>ProgramArguments</key>
+	<array>
+		<string>/opt/homebrew/bin/node</string>
+		<string>/Users/jorge/Downloads/agente-tito-metralleta-main/web/scripts/weekly-backtest.mjs</string>
+	</array>
+
+	<key>WorkingDirectory</key>
+	<string>/Users/jorge/Downloads/agente-tito-metralleta-main/web</string>
+
+	<!-- Una vez a la semana, viernes 6 PM local — 2 horas después del cierre
+	     del mercado (4 PM ET), con margen para que el flujo del día ya esté
+	     guardado. Weekday=5 es viernes para launchd (1=lunes..5=viernes,
+	     6=sábado, 0/7=domingo). -->
+	<key>StartCalendarInterval</key>
+	<dict>
+		<key>Weekday</key><integer>5</integer>
+		<key>Hour</key><integer>18</integer>
+		<key>Minute</key><integer>0</integer>
+	</dict>
+
+	<key>StandardOutPath</key>
+	<string>/Users/jorge/Downloads/agente-tito-metralleta-main/web/data/weekly-backtest-stdout.log</string>
+	<key>StandardErrorPath</key>
+	<string>/Users/jorge/Downloads/agente-tito-metralleta-main/web/data/weekly-backtest-stderr.log</string>
+
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>PATH</key>
+		<string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+	</dict>
+</dict>
+</plist>

@@ -44,6 +44,8 @@ describe("createPaperPlan", () => {
     expect(plan.stopHistory).toHaveLength(1);
     expect(plan.origin).toBe("manual");
     expect(plan.rulesVersion).toBeNull();
+    expect(plan.newsAtEntry).toBeNull();
+    expect(plan.newsAtExit).toBeNull();
   });
 });
 

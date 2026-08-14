@@ -22,8 +22,20 @@ export interface RuleProposal {
   avgEstimatedProbability: number;
   rationale: string;
   createdAt: string;
-  status: "pending" | "approved" | "rejected";
+  /**
+   * "auto_applied" es distinto de "approved": nadie lo revisó, se aplicó solo
+   * (backtest semanal, ver lib/backtestRuleSelection.ts) — el estado deja esa
+   * diferencia visible en el propio historial en vez de disfrazarlo de
+   * aprobación humana.
+   */
+  status: "pending" | "approved" | "rejected" | "auto_applied";
   decidedAt: string | null;
+  /**
+   * De dónde salió la propuesta. undefined en propuestas creadas antes de que
+   * existiera este campo — se tratan como "manual_cycle" (lo único que existía
+   * entonces).
+   */
+  source?: "manual_cycle" | "auto_backtest";
 }
 
 export interface ScannerRulesFile {
