@@ -5,14 +5,18 @@
 // de unas semanas (lib/backtest.ts hoy corre sin cadena histórica porque no
 // existe — ver el comentario al principio de ese archivo).
 //
-// Se aprovecha que app/api/scan/intraday y app/api/scan/swing YA descargan la
-// cadena completa de cada ticker que analizan (fetchOptionChain) — este store
-// solo la persiste también, sin ninguna llamada extra a MarketSnack.
+// Se aprovecha que app/api/scan/intraday, app/api/scan/swing y
+// app/api/chain-snapshot YA descargan la cadena completa de cada ticker que
+// analizan (fetchOptionChain) — este store solo la persiste también, sin
+// ninguna llamada extra a MarketSnack.
 //
-// Una foto por día de mercado (ET); si el mismo ticker se analiza varias veces
-// el mismo día (intradía corre cada 30 min), la última corrida reemplaza a la
-// anterior — mismo patrón que chainStore.ts, y de paso queda la foto más
-// completa del día (cerca del cierre) en vez de la de apertura.
+// UN ARCHIVO POR TICKER POR DÍA (data/chain-rows/{TICKER}/{FECHA}.json), no un
+// solo JSON por ticker que va creciendo — a propósito, pensando en que esto se
+// va a respaldar en iCloud Drive (2 TB disponibles, confirmado con Jorge):
+// un archivo por día es inmutable una vez escrito, así que iCloud solo sube el
+// día nuevo cada vez. Con un solo archivo gigante por ticker, subir un día más
+// de datos habría obligado a resubir TODO el historial acumulado cada vez —
+// cada vez más lento según fuera creciendo el año.
 
 import { promises as fs } from "fs";
 import path from "path";
@@ -39,45 +43,65 @@ export interface ChainRowsSnapshot {
 
 export interface OptionChainHistory {
   ticker: string;
-  updatedAt: string;
   snapshots: ChainRowsSnapshot[]; // más reciente primero
 }
 
-function fileFor(ticker: string): string {
+function tickerDir(ticker: string): string {
   const safe = ticker.trim().toUpperCase().replace(/[^A-Z0-9._-]/g, "");
-  return path.join(DATA_DIR, `${safe}.json`);
+  return path.join(DATA_DIR, safe);
 }
 
+function fileFor(ticker: string, date: string): string {
+  return path.join(tickerDir(ticker), `${date}.json`);
+}
+
+/** Lee todas las fotos guardadas de un ticker, más reciente primero. */
 export async function loadOptionChainHistory(ticker: string): Promise<OptionChainHistory | null> {
-  try {
-    const raw = await fs.readFile(fileFor(ticker), "utf8");
-    const parsed = JSON.parse(raw) as OptionChainHistory;
-    return Array.isArray(parsed.snapshots) ? parsed : null;
-  } catch {
-    return null; // aún no hay historial para este ticker
+  const dir = tickerDir(ticker);
+  const files = await fs.readdir(dir).catch(() => null);
+  if (!files || files.length === 0) return null;
+
+  const dates = files.filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, "")).sort().reverse();
+  const snapshots: ChainRowsSnapshot[] = [];
+  for (const date of dates) {
+    const raw = await fs.readFile(path.join(dir, `${date}.json`), "utf8").catch(() => null);
+    if (!raw) continue;
+    try {
+      snapshots.push(JSON.parse(raw) as ChainRowsSnapshot);
+    } catch {
+      // archivo corrupto — se ignora, no tumba el resto del historial
+    }
   }
+  return { ticker: ticker.trim().toUpperCase(), snapshots };
 }
 
-/** Snapshot del día de mercado (ET) de `now`. Un solo snapshot por fecha — se sustituye si ya existía. */
+/**
+ * Guarda (o sustituye) la foto del día de mercado (ET) de `now` — un archivo
+ * inmutable por fecha. Si el mismo ticker se analiza varias veces el mismo día
+ * (intradía corre cada 30 min), la corrida más tardía reemplaza a la anterior,
+ * pero solo se reescribe el archivo de HOY, nunca los de días anteriores.
+ * También poda los archivos más viejos que HISTORY_DAYS.
+ */
 export async function saveOptionChainSnapshot(
   ticker: string, rows: Row[], underlyingPrice: number | null, now: Date = new Date(),
-): Promise<OptionChainHistory> {
+): Promise<void> {
   const clean = ticker.trim().toUpperCase();
   const date = marketDateStr(now);
+  const dir = tickerDir(clean);
 
   const snapshot: ChainRowsSnapshot = { date, savedAt: now.toISOString(), underlyingPrice, rows };
+  await fs.mkdir(dir, { recursive: true });
+  await fs.writeFile(fileFor(clean, date), JSON.stringify(snapshot), "utf8");
 
-  const existing = await loadOptionChainHistory(clean);
-  const byDate = new Map<string, ChainRowsSnapshot>();
-  for (const snap of existing?.snapshots ?? []) byDate.set(snap.date, snap);
-  byDate.set(date, snapshot);
+  await pruneOld(dir);
+}
 
-  const snapshots = [...byDate.values()]
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, HISTORY_DAYS);
+/** Borra los archivos más viejos que sobren de la ventana de HISTORY_DAYS. */
+async function pruneOld(dir: string): Promise<void> {
+  const files = await fs.readdir(dir).catch(() => []);
+  const dates = files.filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, "")).sort().reverse();
+  if (dates.length <= HISTORY_DAYS) return;
 
-  const payload: OptionChainHistory = { ticker: clean, updatedAt: now.toISOString(), snapshots };
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  await fs.writeFile(fileFor(clean), JSON.stringify(payload), "utf8");
-  return payload;
+  const toDelete = dates.slice(HISTORY_DAYS);
+  await Promise.all(toDelete.map((d) => fs.unlink(path.join(dir, `${d}.json`)).catch(() => null)));
 }
