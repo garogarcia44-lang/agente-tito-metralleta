@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.tito.tunnel</string>
+
+	<key>ProgramArguments</key>
+	<array>
+		<string>/opt/homebrew/bin/cloudflared</string>
+		<string>tunnel</string>
+		<string>--url</string>
+		<string>http://localhost:3000</string>
+	</array>
+
+	<key>WorkingDirectory</key>
+	<string>/Users/jorge/Downloads/agente-tito-metralleta-main/web</string>
+
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<true/>
+
+	<key>StandardOutPath</key>
+	<string>/Users/jorge/Downloads/agente-tito-metralleta-main/web/data/tunnel-stdout.log</string>
+	<key>StandardErrorPath</key>
+	<string>/Users/jorge/Downloads/agente-tito-metralleta-main/web/data/tunnel-stderr.log</string>
+
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>PATH</key>
+		<string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+	</dict>
+</dict>
+</plist>

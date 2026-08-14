@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.tito.dev-server</string>
+
+	<key>ProgramArguments</key>
+	<array>
+		<string>/opt/homebrew/bin/npm</string>
+		<string>run</string>
+		<string>dev</string>
+	</array>
+
+	<key>WorkingDirectory</key>
+	<string>/Users/jorge/Downloads/agente-tito-metralleta-main/web</string>
+
+	<!-- Servicio permanente, no una tarea periódica: RunAtLoad (arranca solo al
+	     cargar el job o al reiniciar el Mac) + KeepAlive (si el proceso se cae
+	     por lo que sea, launchd lo vuelve a levantar solo). -->
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<true/>
+
+	<key>StandardOutPath</key>
+	<string>/Users/jorge/Downloads/agente-tito-metralleta-main/web/data/dev-server-stdout.log</string>
+	<key>StandardErrorPath</key>
+	<string>/Users/jorge/Downloads/agente-tito-metralleta-main/web/data/dev-server-stderr.log</string>
+
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>PATH</key>
+		<string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+		<key>HOME</key>
+		<string>/Users/jorge</string>
+		<key>USER</key>
+		<string>jorge</string>
+		<key>LOGNAME</key>
+		<string>jorge</string>
+		<key>SHELL</key>
+		<string>/bin/zsh</string>
+	</dict>
+</dict>
+</plist>
