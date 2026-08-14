@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.tito.chain-snapshot</string>
+
+	<key>ProgramArguments</key>
+	<array>
+		<string>/opt/homebrew/bin/node</string>
+		<string>/Users/jorge/Downloads/agente-tito-metralleta-main/web/scripts/snapshot-chains.mjs</string>
+	</array>
+
+	<key>WorkingDirectory</key>
+	<string>/Users/jorge/Downloads/agente-tito-metralleta-main/web</string>
+
+	<!-- Una vez al día, entre semana, 9:45 AM local (15 min después de la
+	     apertura — le da tiempo a MarketSnack a tener la cadena del día).
+	     El script mismo también revisa que sea día hábil, por si el Mac
+	     estuvo dormido a esa hora y lo corre más tarde al despertar. -->
+	<key>StartCalendarInterval</key>
+	<array>
+		<dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>9</integer><key>Minute</key><integer>45</integer></dict>
+		<dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>9</integer><key>Minute</key><integer>45</integer></dict>
+		<dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>9</integer><key>Minute</key><integer>45</integer></dict>
+		<dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>9</integer><key>Minute</key><integer>45</integer></dict>
+		<dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>9</integer><key>Minute</key><integer>45</integer></dict>
+	</array>
+
+	<key>StandardOutPath</key>
+	<string>/Users/jorge/Downloads/agente-tito-metralleta-main/web/data/chain-snapshot-stdout.log</string>
+	<key>StandardErrorPath</key>
+	<string>/Users/jorge/Downloads/agente-tito-metralleta-main/web/data/chain-snapshot-stderr.log</string>
+
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>PATH</key>
+		<string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+	</dict>
+</dict>
+</plist>

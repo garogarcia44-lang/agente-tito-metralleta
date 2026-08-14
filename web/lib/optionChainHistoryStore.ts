@@ -21,8 +21,14 @@ import type { Row } from "./types";
 
 const DATA_DIR = path.join(process.cwd(), "data", "chain-rows");
 
-/** Suficiente para acumular varios meses sin crecer sin control. */
-export const HISTORY_DAYS = 200;
+/**
+ * Un día completo (95 tickers, medido en vivo el 2026-08-14) pesa ~57 MB, así
+ * que 365 días son ~21 GB — Jorge confirmó que puede usar hasta 50 GB para
+ * esto ("entre más información tengamos mejor"), con margen para que la lista
+ * de tickers rastreados crezca con el tiempo. Un año completo de cadena real
+ * por delante, no solo las 6 semanas que alcanzaron para backtestear swing.
+ */
+export const HISTORY_DAYS = 365;
 
 export interface ChainRowsSnapshot {
   date: string; // fecha de mercado (ET), YYYY-MM-DD
