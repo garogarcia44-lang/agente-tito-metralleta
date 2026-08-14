@@ -33,6 +33,7 @@ import { checkAutoPlanGuards } from "@/lib/planGuards";
 import { createPaperPlan, type CreatePlanInput, type PaperPlan } from "@/lib/paperPlan";
 import { loadPaperPlans, savePaperPlans } from "@/lib/paperPlansStore";
 import { loadScannerRules } from "@/lib/scannerRulesStore";
+import { saveOptionChainSnapshot } from "@/lib/optionChainHistoryStore";
 import { sendPaperAlertOnce } from "@/lib/paperAlertSender";
 
 export const runtime = "nodejs";
@@ -135,6 +136,7 @@ export async function GET() {
           }
 
           const chainRows = chain.contracts.map(toRow);
+          await saveOptionChainSnapshot(ticker, chainRows, chain.underlyingPrice, now).catch(() => null);
           const ownFlow = rows.filter((r) => r.underlying === ticker);
           const flowTrades: TradeLite[] = ownFlow.map((r) => ({
             strike: r.strike, type: r.type, premium: r.premium, gamma: r.gamma,
