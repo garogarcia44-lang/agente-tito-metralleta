@@ -15,8 +15,13 @@
 // sesión muerta y hace login de nuevo, saca a Jorge de la suya si estaba dentro
 // en ese momento — es la consecuencia esperada, no un bug).
 //
-// Solo corre en horario de mercado (ver marketHours.mjs) — fuera de esas
-// horas no hace falta mantenerla viva, nada la va a usar.
+// El disparo AUTOMÁTICO (launchd) solo corre en horario de mercado (ver
+// marketHours.mjs) — fuera de esas horas no hace falta mantenerla viva sola,
+// nada automático la va a usar. Pero si Jorge quiere usar Tito él mismo fuera
+// de horario y la sesión está muerta, correr el script A MANO con --force
+// se salta ese chequeo — es una decisión explícita de él en el momento, no
+// el proceso automático decidiendo trabajar fuera de su horario:
+//   node scripts/refresh-marketsnack-cookie.mjs --force
 //
 // Este script inicia sesión en app.marketsnack.com con Playwright headless,
 // usando MARKETSNACK_EMAIL/MARKETSNACK_PASSWORD de .env.local, y escribe la
@@ -24,7 +29,7 @@
 // lee en cada request, así que el servidor NO necesita reiniciarse para usarla.
 //
 // Lo lanza launchd (ver com.tito.marketsnack-refresh.plist). También se puede
-// correr a mano: node scripts/refresh-marketsnack-cookie.mjs
+// correr a mano: node scripts/refresh-marketsnack-cookie.mjs [--force]
 //
 // Nunca imprime el email/password/cookie en la salida — solo éxito/fallo y el
 // motivo, en data/marketsnack-refresh-log.jsonl.
@@ -65,7 +70,8 @@ async function sesionViva(cookieHeader) {
 
 async function main() {
   const now = new Date();
-  if (!enMercado(now)) process.exit(0); // fuera de horario de mercado — nada que mantener vivo
+  const forzado = process.argv.includes("--force");
+  if (!forzado && !enMercado(now)) process.exit(0); // fuera de horario de mercado — nada que mantener vivo
 
   let current = null;
   try {
@@ -74,7 +80,9 @@ async function main() {
     // sin sesión guardada todavía — sigue directo al login
   }
   if (current?.cookie && (await sesionViva(current.cookie))) {
-    await log("ok_sin_cambios", "La sesión seguía viva, no hizo falta relogear.");
+    await log("ok_sin_cambios", forzado
+      ? "La sesión seguía viva, no hizo falta relogear (corrida forzada fuera de horario)."
+      : "La sesión seguía viva, no hizo falta relogear.");
     process.exit(0);
   }
 
@@ -118,10 +126,13 @@ async function main() {
     await fs.mkdir(DATA_DIR, { recursive: true });
     await fs.writeFile(
       SESSION_FILE,
-      JSON.stringify({ cookie: cookieHeader, updatedAt: new Date().toISOString(), source: "auto" }, null, 2),
+      JSON.stringify(
+        { cookie: cookieHeader, updatedAt: new Date().toISOString(), source: forzado ? "manual_force" : "auto" },
+        null, 2,
+      ),
       "utf8",
     );
-    await log("ok", `Cookie refrescada (${cookies.length} cookies).`);
+    await log("ok", `Cookie refrescada (${cookies.length} cookies).${forzado ? " (corrida forzada fuera de horario)" : ""}`);
   } finally {
     await browser.close();
   }
