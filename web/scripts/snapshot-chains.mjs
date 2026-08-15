@@ -14,6 +14,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { config as loadEnv } from "dotenv";
+import { enMercado } from "./marketHours.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
@@ -28,13 +29,11 @@ async function log(event, detail) {
   await fs.appendFile(LOG_FILE, line, "utf8");
 }
 
-function esDiaHabil(now) {
-  const dow = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short" }).format(now);
-  return dow !== "Sat" && dow !== "Sun";
-}
-
 async function main() {
-  if (!esDiaHabil(new Date())) process.exit(0); // fin de semana — coste cero, sin log
+  // Antes solo revisaba fin de semana — ahora también festivos del mercado
+  // (marketHours.mjs), para no intentar pedir la cadena completa un día que
+  // MarketSnack no tiene nada nuevo que dar (ej. Acción de Gracias, Navidad).
+  if (!enMercado(new Date())) process.exit(0); // fuera de horario/festivo — coste cero, sin log
 
   const user = process.env.BASIC_AUTH_USER;
   const pass = process.env.BASIC_AUTH_PASSWORD;

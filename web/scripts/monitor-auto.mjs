@@ -5,13 +5,15 @@
 // También se puede correr a mano: node scripts/monitor-auto.mjs
 //
 // Mismo patrón que scan-auto.mjs: Node y no bash (choque de TCC de macOS con
-// /bin/bash sobre ~/Downloads), y sale en silencio fuera de horario de
-// mercado — los planes con contrato de opciones no se mueven fuera de horas.
+// /bin/bash sobre ~/Downloads), y sale en silencio fuera de horario de mercado
+// (fines de semana, festivos, antes/después de horas — ver marketHours.mjs) —
+// los planes con contrato de opciones no se mueven fuera de horas.
 
 import { promises as fs } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { config as loadEnv } from "dotenv";
+import { enMercado } from "./marketHours.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
@@ -24,17 +26,6 @@ async function log(event, detail) {
   await fs.mkdir(DATA_DIR, { recursive: true });
   const line = JSON.stringify({ at: new Date().toISOString(), event, detail }) + "\n";
   await fs.appendFile(LOG_FILE, line, "utf8");
-}
-
-function enMercado(now) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/New_York", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false,
-  }).formatToParts(now);
-  const get = (type) => parts.find((p) => p.type === type)?.value ?? "";
-  const dow = get("weekday");
-  const hm = Number(get("hour")) * 100 + Number(get("minute"));
-  const esFinde = dow === "Sat" || dow === "Sun";
-  return !esFinde && hm >= 930 && hm <= 1600;
 }
 
 async function main() {

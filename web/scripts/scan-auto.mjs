@@ -18,8 +18,9 @@
 // ya usa scripts/refresh-marketsnack-cookie.mjs). Mismo camino ya probado, no
 // una solución nueva sin verificar.
 //
-// Fuera de horario de mercado (fines de semana, antes de apertura, después de
-// cierre) sale en silencio sin llamar a la API — coste cero fuera de horas.
+// Fuera de horario de mercado (fines de semana, festivos del mercado, antes de
+// apertura, después de cierre — ver marketHours.mjs) sale en silencio sin
+// llamar a la API — coste cero fuera de horas.
 //
 // Toda la lógica de detección/creación de planes/alertas vive en la ruta misma
 // (app/api/scan/<horizonte>) — este script solo la dispara y registra qué pasó.
@@ -28,6 +29,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { config as loadEnv } from "dotenv";
+import { enMercado } from "./marketHours.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
@@ -47,17 +49,6 @@ async function log(event, detail) {
   await fs.mkdir(DATA_DIR, { recursive: true });
   const line = JSON.stringify({ at: new Date().toISOString(), event, detail }) + "\n";
   await fs.appendFile(LOG_FILE, line, "utf8");
-}
-
-function enMercado(now) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/New_York", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false,
-  }).formatToParts(now);
-  const get = (type) => parts.find((p) => p.type === type)?.value ?? "";
-  const dow = get("weekday"); // "Mon".."Sun"
-  const hm = Number(get("hour")) * 100 + Number(get("minute"));
-  const esFinde = dow === "Sat" || dow === "Sun";
-  return !esFinde && hm >= 930 && hm <= 1600;
 }
 
 async function main() {

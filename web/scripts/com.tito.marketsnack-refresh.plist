@@ -14,12 +14,17 @@
 	<key>WorkingDirectory</key>
 	<string>/Users/jorge/Downloads/agente-tito-metralleta-main/web</string>
 
-	<!-- Cada 1 hora. Antes eran 6h asumiendo que la sesión duraba "de 1 a pocos
-	     días" — falso: medido en vivo el 2026-08-13, una cookie refrescada a las
-	     5:59 AM ET ya estaba muerta a las 9:47 AM ET (bajo 4 horas). Un margen de
-	     1h dado ese dato real. -->
+	<!-- Cada 5 min, pero REACTIVO (ver refresh-marketsnack-cookie.mjs): primero
+	     prueba con un GET barato si la cookie actual sigue viva, y solo si está
+	     muerta hace el login completo. No es "loguear cada 5 min sí o sí" — es
+	     "revisar cada 5 min, relogear solo si hace falta". El script también
+	     sale sin hacer nada fuera de horario de mercado (marketHours.mjs), así
+	     que de noche/fin de semana/festivos no corre ni el chequeo barato.
+	     Antes era cada 1h sin chequeo (loguear siempre) — cambiado 2026-08-15 a
+	     pedido de Jorge, para que el peor caso de sesión caída (p. ej. cuando él
+	     mismo entra a MarketSnack y patea al bot) baje de 60 min a 5. -->
 	<key>StartInterval</key>
-	<integer>3600</integer>
+	<integer>300</integer>
 
 	<!-- Corre una vez también al cargar el job (p. ej. tras reiniciar el Mac
 	     mini o recién instalado), no solo en el primer intervalo. -->
